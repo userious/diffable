@@ -4,7 +4,7 @@
 = Contents =
   # [WikiJ2eeDiffableConfigure#Importing Importing]
   # [WikiJ2eeDiffableConfigure#Configuring_web.xml Configuring web.xml]
-  # [WikiJ2eeDiffableConfigure#Configuration_Options Configuration Options]
+  # [DiffableConfigProperties Configuration Options]
 
 == Importing ==
 
