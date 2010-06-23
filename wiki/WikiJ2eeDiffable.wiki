@@ -9,6 +9,9 @@ Features:
   * Can serve Javascript resources using Diffable.
   * Provides custom tags for integrating into JSP pages.
 
+Information on configuring Diffable from within a J2EE web application is available
+[WikiWebXML here].
+
 == Building ==
 
 The J2EE implementation uses Maven for package management and build tasks. From the README:
