@@ -7,7 +7,7 @@ The Diffable library allows many of its configuration options to be overridden v
   * `ResourceStorePath=/some/path`
   The resource store path defines the folder Diffable will use to store versions of a given managed resource along with deltas between those versions.  If this is not explicitly defined, the artifacts will be stored in a '.diffable' folder under the root of the web application.  If a managed resource is removed from a resource folder then the artifacts corresponding to that resource will be deleted the next time the application starts.
 
-  * `KeepResourcesInMemory=[true/false]'
+  * `KeepResourcesInMemory=[true/false]`
   If true, the contents of the most recent version of managed resources will be kept in memory.  Although incurring a larger memory footprint, it speeds up the serving of resources by avoiding file reads.  This currently does not apply do deltas, although this may change in the future.  It defaults to true.
 
   * `MessageBundlePath=/some/path`
