@@ -9,8 +9,9 @@ Features:
   * Can serve Javascript resources using Diffable.
   * Provides custom tags for integrating into JSP pages.
 
-Information on configuring Diffable from within a J2EE web application is available
-[WikiJ2eeDiffableConfigure here].
+Further Information:
+  [WikiJ2eeDiffableConfigure Configuring Diffable for J2EE]
+  
 
 == Building ==
 
