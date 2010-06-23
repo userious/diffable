@@ -29,9 +29,6 @@ Google Guice 2.0 or better:
 AOP Alliance 1.0 or better:
  - aopalliance.jar : http://sourceforge.net/projects/aopalliance/
 
-Objenesis 1.2 or better:
- - objenesis-1.2.jar : http://code.google.com/p/objenesis/
-
 Apache Commons IO 1.4 or better:
  - commons-io-1.4.jar : http://commons.apache.org/io/
  
@@ -46,6 +43,9 @@ EasyMock 3.0 or better:
 
 Code Generation Library 2.2 or better:
  - cglib-nodep-2.2.jar : http://cglib.sourceforge.net/
+
+Objenesis 1.2 or better:
+ - objenesis-1.2.jar : http://code.google.com/p/objenesis/
  
 Once the class path has been constructed correctly, simply cd to the
 j2ee-diffable directory and run:
