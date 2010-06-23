@@ -55,7 +55,7 @@ Second, the DiffableListener must be added as a listener servlet so that it can 
 Upon start-up, the DiffableListener will initialize a resource manager and monitor the resources residing in the designated resource folders.  It will also load any configuration options provided by DiffableConfigProperties.
 
 ===Diffable Configuration Properties===
-Because Diffable makes use of the Google Guice dependency injection framework, many of the options used at run time can be overwritten by defining a properties file in the web.xml. The use of a diffable configuration file is optional, and if not provided, sensible defaults are used for all options.  To define a properties file the following context-param must be added to the web.xml:
+Because Diffable makes use of the Google Guice dependency injection framework, many of the options used at run time can be overwritten by defining a properties file in the web.xml with a DiffableConfigProperties context-param. The use of a diffable configuration file is optional, and if not provided, sensible defaults are used for all options.  To define a properties file, make the following addition to the web.xml.
 {{{
   <context-param>
       <description>
@@ -66,4 +66,24 @@ Because Diffable makes use of the Google Guice dependency injection framework, m
       <param-value>WEB-INF/diffable.properties</param-value>
   </context-param>
 }}}
-As with the ResourceFolders parameter, the value of this context param can be either relative or absolute depending on whether the path is preceded by a slash.  Unlike the resource folders, there can be only one path defined.
+As with the ResourceFolders parameter, the value of this context param can be either relative or absolute depending on whether the path is preceded by a slash.  Unlike the resource folders, there can be only one path defined.  The options available are enumerated on the DiffableConfigProperties page.
+
+===Diffable Servlet===
+Lastly, the DiffableServlet must be mapped to handle requests for resources.  This is done using a classic servlet tag in the web.xml:
+{{{
+  <servlet>
+      <description>
+          Serves managed diffable resources.
+      </description>
+      <servlet-name>DiffableServlet</servlet-name>
+      <servlet-class>
+          com.google.diffable.servlets.DiffableServlet
+      </servlet-class>
+  </servlet>
+ 
+  <servlet-mapping>
+      <servlet-name>DiffableServlet</servlet-name>
+      <url-pattern>/diffable/*</url-pattern>
+  </servlet-mapping>
+}}}
+Of course, the mapping can be modified to whatever URL is desired.
