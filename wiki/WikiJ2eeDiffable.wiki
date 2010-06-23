@@ -10,9 +10,9 @@ Features:
   * Provides custom tags for integrating into JSP pages.
 
 Further Information:
-  [WikiJ2eeDiffableConfigure Configuring Diffable for J2EE]
-  [WikiJ2eeUsingDiffable Using Diffable for J2EE]
-  [WikiJ2eeResourceManagement Resource Management in Diffable for J2EE]
+  * [WikiJ2eeDiffableConfigure Configuring Diffable for J2EE]
+  * [WikiJ2eeUsingDiffable Using Diffable for J2EE]
+  * [WikiJ2eeResourceManagement Resource Management in Diffable for J2EE]
 
 == Building ==
 
