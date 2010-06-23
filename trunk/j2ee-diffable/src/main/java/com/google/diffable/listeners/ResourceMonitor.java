@@ -25,6 +25,7 @@ import com.google.diffable.config.MessageProvider;
 import com.google.diffable.data.ResourceManager;
 import com.google.diffable.exceptions.StackTracePrinter;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 public class ResourceMonitor extends Thread {
 	@Inject
@@ -41,6 +42,7 @@ public class ResourceMonitor extends Thread {
 	
 	// The interval to wait between checking for changes in managed resources.
 	// It is interpreted in milliseconds.
+	@Inject(optional=true) @Named("ResourceMonitorInterval")
 	private int interval = 2000;
 	
 	private boolean process = true;
