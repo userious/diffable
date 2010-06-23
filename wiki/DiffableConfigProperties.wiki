@@ -1,0 +1,5 @@
+#summary Diffable Configuration Properties for J2EE Diffable
+
+= Configuration Properties for Diffable for J2EE =
+
+The Diffable library allows many of its configuration options to be overridden via a Java properties file which must be referenced by a context parameter from within the web.xml file.
