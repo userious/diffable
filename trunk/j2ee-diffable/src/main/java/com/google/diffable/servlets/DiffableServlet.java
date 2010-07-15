@@ -81,7 +81,8 @@ public class DiffableServlet extends HttpServlet {
 				req.getContextPath() + req.getServletPath() + "/", "");
 		provider.debug(logger, "servlet.resourcerequest", requestString);
 		try {
-			ResourceRequest request = new ResourceRequest(requestString);
+			ResourceRequest request = inj.getInstance(ResourceRequest.class); 
+			request.setRequest(requestString);
 			inj.getMembersInjector(
 				ResourceRequest.class).injectMembers(request);
 			mgr.getResource(request);

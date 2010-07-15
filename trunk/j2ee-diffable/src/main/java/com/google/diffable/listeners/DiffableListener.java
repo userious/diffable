@@ -148,10 +148,10 @@ public class DiffableListener implements ServletContextListener {
 		// it to initialize the module.
 		String propFilePath = ctx.getInitParameter("DiffableConfigProperties");
 		String currentPath = ctx.getRealPath("");
-		File propFile = propFilePath.startsWith("/") ?
-						new File(propFilePath) :
-				        new File(currentPath + File.separator + propFilePath);
 		if (propFilePath != null) {
+			File propFile = propFilePath.startsWith("/") ?
+					new File(propFilePath) :
+			        new File(currentPath + File.separator + propFilePath);
 			try {
 				Properties props = new Properties();
 				props.load(new FileInputStream(propFile));

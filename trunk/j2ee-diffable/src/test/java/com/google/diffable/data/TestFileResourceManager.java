@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.diffable.diff.vcdiff.VCDiff;
+import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -41,12 +42,12 @@ import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
 public class TestFileResourceManager {
-	Logger logger = createMock(Logger.class);
-	ServletContext ctx = createMock(ServletContext.class);
-	File tempDir;
-	String tmp;
-	FileResourceManager mgr;
-	Injector inj;
+	private Logger logger = createMock(Logger.class);
+	private ServletContext ctx = createMock(ServletContext.class);
+	private File tempDir;
+	private String tmp;
+	private FileResourceManager mgr;
+	private Injector inj;
 	
 	@Before
 	public void setUp() throws Throwable {
@@ -348,6 +349,10 @@ public class TestFileResourceManager {
 	    out.close();
 	    mgr.initialize();
 	    
+	    // Delete the resource before adding it to confirm that attempting to
+	    // delete an unmanaged resource doesn't throw an error.
+	    mgr.deleteResource(managedFile);
+	    
 	    File store = new File(tmp + ".diffable");
 	    mgr.putResource(managedFile);
 	    assertEquals(1, mgr.getManagedResources().size());
@@ -392,6 +397,25 @@ public class TestFileResourceManager {
 		assertTrue(mgr.hasResourceChanged(managedFile));
 	}
 	
+	@Test(expected=ResourceManagerException.class)
+	public void testHasResourceChangedNotManagedResource()
+	throws Throwable {
+		File managedFile = new File(tmp + "tempFile");
+	    managedFile.createNewFile();
+		mgr.initialize();
+		mgr.hasResourceChanged(managedFile);
+	}
+	
+	@Test
+	public void testGetNonManagedResource()
+	throws Throwable {
+		// Simply confirms that a bogus ResourceRequest won't cause a crash.
+	    mgr.initialize();
+	    ResourceRequest req = inj.getInstance(ResourceRequest.class);
+	    req.setResourceHash("aaa");
+	    mgr.getResource(req);
+	}
+	
 	@Test
 	public void testGetResource()
 	throws Throwable {
@@ -414,7 +438,8 @@ public class TestFileResourceManager {
 	    
 	    String resourceHash = hashString(managedFile.getAbsolutePath());
 	    
-	    ResourceRequest req = new ResourceRequest(resourceHash);
+	    ResourceRequest req = new ResourceRequest();
+	    req.setRequest(resourceHash);
 	    mgr.getResource(req);
 	    assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.getResponse());
 	    
@@ -423,15 +448,101 @@ public class TestFileResourceManager {
 	    out.write("bbbbbbbbbbbbbbbaaaaaaaaaaaaaaa".getBytes());
 	    out.close();
 	    mgr.putResource(managedFile);
-	    req = new ResourceRequest(resourceHash);
+	    req = new ResourceRequest();
+	    req.setRequest(resourceHash);
 	    mgr.getResource(req);
 	    assertEquals("bbbbbbbbbbbbbbbaaaaaaaaaaaaaaa", req.getResponse());
 	    
 	    String oldVersion = hashString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 	    String newVersion = hashString("bbbbbbbbbbbbbbbaaaaaaaaaaaaaaa");
-	    req = new ResourceRequest(resourceHash + "_" + oldVersion + "_" +
-	    			              newVersion + ".diff");
+	    req = new ResourceRequest();
+	    req.setRequest(resourceHash + "_" + oldVersion + "_" +
+	    			   newVersion + ".diff");
 	    mgr.getResource(req);
 	    assertEquals("[\"bbbbbbbbbbbbbbb\",0,15,]", req.getResponse());
+	}
+	
+	private ResourceRequest noDiffHelper(FileResourceManager mgr,
+			                             boolean isDiff)
+	throws Throwable {
+		File managedFile = new File(tmp + "tempFile");
+	    managedFile.createNewFile();
+	    FileOutputStream out = new FileOutputStream(managedFile);
+	    out.write("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".getBytes());
+	    out.close();
+	    mgr.initialize();
+	    mgr.putResource(managedFile);
+	    
+	    String resourceHash = hashString(managedFile.getAbsolutePath());
+	    
+	    ResourceRequest req = new ResourceRequest();
+	    String hash = resourceHash + (isDiff ? "_aa_bb.diff" : "");
+	    req.setRequest(hash);
+	    mgr.getResource(req);
+	    return req;
+	}
+	
+	/**
+	 * Confirm that when the manager can't find the specified diff, it returns
+	 * the contents of the latest version of the managed resource.
+	 */
+	@Test
+	public void testNoDiffReturnLatestNotInMemory()
+	throws Throwable {
+		inj.createChildInjector(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bindConstant().annotatedWith(
+					Names.named("KeepResourcesInMemory")).to(false);
+			}
+		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
+		
+		ResourceRequest req = noDiffHelper(mgr, true);
+	    assertEquals("[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]", req.getResponse());
+	}
+	
+	@Test
+	public void testNoDiffReturnLatestInMemory()
+	throws Throwable {
+		inj.createChildInjector(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bindConstant().annotatedWith(
+					Names.named("KeepResourcesInMemory")).to(true);
+			}
+		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
+		
+		ResourceRequest req = noDiffHelper(mgr, true);
+	    assertEquals("[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]", req.getResponse());
+	}
+	
+	@Test
+	public void testGetResourceNotInMemory()
+	throws Throwable {
+		inj.createChildInjector(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bindConstant().annotatedWith(
+					Names.named("KeepResourcesInMemory")).to(false);
+			}
+		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
+		
+		ResourceRequest req = noDiffHelper(mgr, false);
+	    assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.getResponse());
+	}
+	
+	@Test
+	public void testGetResourceInMemory()
+	throws Throwable {
+		inj.createChildInjector(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bindConstant().annotatedWith(
+					Names.named("KeepResourcesInMemory")).to(true);
+			}
+		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
+		
+		ResourceRequest req = noDiffHelper(mgr, false);
+	    assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.getResponse());
 	}
 }

@@ -73,15 +73,15 @@ public class ResourceRequest {
 	private String response;
 	
 	/**
-	 * The constructor gets passed the request (stripped of servlet context)
-	 * and a list of resource folders where managed resources may exist.
+	 * The method gets passed the request (stripped of servlet context) and a
+	 * list of resource folders where managed resources may exist.
 	 * 
 	 * @param requested The requested resource. At this point, any servlet
 	 *     context information should be removed.  For instance, if the request
 	 *     was for http://localhost/SomeWebApp/diffable/aabbcc, then requested
 	 *     should only be 'aabbcc.'
 	 */
-	public ResourceRequest(String requested)
+	public void setRequest(String requested)
 	throws DiffableException {
 		try {
 			// The Javascript client must end all requests for diffs with
