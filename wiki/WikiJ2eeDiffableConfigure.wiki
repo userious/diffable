@@ -68,6 +68,21 @@ Because Diffable makes use of the Google Guice dependency injection framework, m
 }}}
 As with the ResourceFolders parameter, the value of this context param can be either relative or absolute depending on whether the path is preceded by a slash.  Unlike the resource folders, there can be only one path defined.  The options available are enumerated on the DiffableConfigProperties page.
 
+===Servlet Prefix Parameter===
+_*Note: The servlet prefix parameter change is checked into the repository but is not changed in the current version.*_
+
+When a managed resource is addressed via the DiffableResourceTag, a prefix is needed so that the request can be addressed to the DiffableServlet.  This prefix is provided via the application's web.xml file using the ServletPrefix context parameter.  The provided value must be the absolute path to the DiffableServlet.  For instance, if the application is deployed as "DeltaJsTest" and the DiffableServlet is mapped to "/diffable/`*`" then the context parameter definition would look like:
+{{{
+  <context-param>
+  	<description>
+  		The prefix to use when addressing managed resource requests to the
+  		Diffable servlet.
+  	</description>
+  	<param-name>ServletPrefix</param-name>
+  	<param-value>/DeltaJSTest/diffable</param-value>
+  </context-param>
+}}}
+
 ===Diffable Servlet===
 Lastly, the DiffableServlet must be mapped to handle requests for resources.  This is done using a classic servlet tag in the web.xml:
 {{{
