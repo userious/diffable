@@ -27,7 +27,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
-import com.google.inject.internal.ImmutableList.Builder;
 
 import static org.easymock.EasyMock.*;
 

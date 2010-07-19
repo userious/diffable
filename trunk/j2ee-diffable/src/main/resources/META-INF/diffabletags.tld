@@ -17,12 +17,6 @@ Library 1.2//EN" "http://java.sun.com/dtd/web-jsptaglibrary_1_2.dtd">
 		<tag-class>com.google.diffable.tags.DiffableResourceTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
-			<name>servletPrefix</name>
-			<required>true</required>
-			<rtexprvalue>true</rtexprvalue>
-			<type>java.lang.String</type>
-		</attribute>
-		<attribute>
 			<name>resource</name>
 			<required>true</required>
 			<rtexprvalue>true</rtexprvalue>

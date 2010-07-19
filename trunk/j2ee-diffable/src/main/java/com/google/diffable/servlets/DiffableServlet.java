@@ -18,6 +18,7 @@ package com.google.diffable.servlets;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -54,7 +55,7 @@ public class DiffableServlet extends HttpServlet {
 	private JsDictionaryBootstrapWrapper jsDictWrapper;
 	
 	@Inject
-	private DeltaBootstrapWrapper bootstrapWrapper;
+	private DeltaBootstrapWrapper jsDiffWrapper;
 	
 	private Injector inj;
 	
@@ -76,31 +77,31 @@ public class DiffableServlet extends HttpServlet {
 			throws ServletException, IOException {
 		// Strip the servlet path information, leaving just the resource 
 		// name, which includes all information after the servlet path.
-		String requestString =
-			req.getRequestURI().replace(
-				req.getContextPath() + req.getServletPath() + "/", "");
+		String basePath = req.getContextPath() + req.getServletPath() + "/";
+		String requestString = req.getRequestURI().replace(basePath, "");
 		provider.debug(logger, "servlet.resourcerequest", requestString);
 		try {
 			ResourceRequest request = inj.getInstance(ResourceRequest.class); 
 			request.setRequest(requestString);
-			inj.getMembersInjector(
-				ResourceRequest.class).injectMembers(request);
 			mgr.getResource(request);
 			if (request.getResponse() != null) {
 				resp.setStatus(200);
-				Calendar now = Calendar.getInstance();
-				now.set(Calendar.YEAR, now.get(Calendar.YEAR) + 2);
+				Calendar twoYearsFromNow = Calendar.getInstance();
+				twoYearsFromNow.set(Calendar.YEAR, 
+						            twoYearsFromNow.get(Calendar.YEAR) + 2);
 				// All responses are denoted as last being modified on Jan 1,
 				// 2000 to allow for very agressive caching.
 				resp.setHeader("Last-Modified",
-					new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z").format(
+					new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z",
+							             Locale.US).format(
 						jan2000.getTime()));
 				resp.setHeader("Cache-Control", "public, max-age=63072000");
 				resp.setHeader("Expires", 
-					new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z").format(
-						now.getTime()));
+					new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z",
+							             Locale.US).format(
+						twoYearsFromNow.getTime()));
 				if (request.isDiff()) {
-					String response = bootstrapWrapper.render(
+					String response = jsDiffWrapper.render(
 						request.getResourceHash(), request.getResponse());
 					resp.setContentLength(response.length());
 					resp.getWriter().print(response);
@@ -108,8 +109,7 @@ public class DiffableServlet extends HttpServlet {
 					String response = jsDictWrapper.render(
 						request.getResourceHash(),
 						JSONHelper.quote(request.getResponse()),
-						request.getNewVersionHash(),
-						req.getContextPath() + req.getServletPath() + "/");
+						request.getNewVersionHash(), basePath);
 					resp.setContentLength(response.length());
 					resp.getWriter().print(response);
 				}
@@ -117,8 +117,8 @@ public class DiffableServlet extends HttpServlet {
 				resp.setStatus(404);
 			}
 		} catch (Exception exc) {
-			provider.error(logger, "servlet.cantserverequest",
-					       req.getRequestURI());
+			//provider.error(logger, "servlet.cantserverequest",
+			//		       req.getRequestURI());
 			printer.print(exc);
 		}
 	}
