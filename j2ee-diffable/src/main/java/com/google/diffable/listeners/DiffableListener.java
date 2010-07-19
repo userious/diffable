@@ -23,6 +23,7 @@ import java.util.Properties;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.ServletException;
 
 import org.apache.log4j.Logger;
 
@@ -133,6 +134,16 @@ public class DiffableListener implements ServletContextListener {
 			monitor.setFolderAndManager(foundFolders, mgr);
 			monitor.setDaemon(true);
 			monitor.start();
+		}
+		
+		// Get the servlet prefix initialization parameter.  This is mandatory
+		// for correctly linking to managed resources, and an exception is
+		// thrown if this parameter is not defined.
+		String servletPrefix = ctx.getInitParameter("ServletPrefix");
+		if (servletPrefix != null) {
+			DiffableResourceTag.setServletPrefix(servletPrefix);
+		} else {
+			provider.error(logger, "servlet.noservletprefix");
 		}
 	}
 	

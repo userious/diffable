@@ -28,9 +28,16 @@ import javax.servlet.jsp.tagext.TagSupport;
 
 public class DiffableResourceTag extends TagSupport {
 	// Stores the resource folders to check for resources.
-	private static List<File> resourceFolders;
+	private static List<File> resourceFolders = null;
 	public static void setFolder(List<File> resourceFolders) {
 		DiffableResourceTag.resourceFolders = resourceFolders;
+	}
+	
+	// Stores the servlet prefix set in the diffable servlet initialzation
+	// parameters.
+	private static String servletPrefix = null;
+	public static void setServletPrefix(String servletPrefix) {
+		DiffableResourceTag.servletPrefix = servletPrefix;
 	}
 	
 	// Cache for storing the most recent version of a managed resource. Used by
@@ -41,17 +48,12 @@ public class DiffableResourceTag extends TagSupport {
 	public static void setCurrentVersion(File resource, String currentVersion) {
 		DiffableResourceTag.currentVersions.put(resource, currentVersion);
 	}
-	
-    private String servletPrefix;	
+		
 	private String resource;
 	private String type;
 	
 	public void setResource(String resource) {
 		this.resource = resource;
-	}
-	
-	public void setServletPrefix(String servletPrefix) {
-		this.servletPrefix = servletPrefix;
 	}
 	
 	public void setType(String type) {
@@ -69,6 +71,10 @@ public class DiffableResourceTag extends TagSupport {
 	@Override
 	public int doStartTag() throws JspException {
 		try {
+			if (servletPrefix == null) {
+				throw new JspException(
+					"No servlet prefix defined!");
+			}
 			// Set the response of the page containing this resource to be
 			// uncacheable.
 			((HttpServletResponse)pageContext.getResponse())
