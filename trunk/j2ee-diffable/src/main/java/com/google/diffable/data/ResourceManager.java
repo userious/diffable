@@ -28,6 +28,8 @@ import com.google.inject.ImplementedBy;
  * A ResourceManager is responsible for versioning and hosting Diffable
  * resources.  It is also responsible for serving deltas between managed
  * resources.
+ * 
+ * @author joshua Harrison
  */
 @ImplementedBy(FileResourceManager.class)
 public interface ResourceManager {

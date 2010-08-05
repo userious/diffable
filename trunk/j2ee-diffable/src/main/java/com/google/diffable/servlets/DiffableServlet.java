@@ -38,7 +38,13 @@ import com.google.diffable.scripts.JsDictionaryBootstrapWrapper;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
+/**
+ * This class defines the servlet which will handle the request for the diffable resources.
+ *  
+ * @author joshua Harrison
+ */
 public class DiffableServlet extends HttpServlet {
+
 	@Inject
 	private StackTracePrinter printer;
 	

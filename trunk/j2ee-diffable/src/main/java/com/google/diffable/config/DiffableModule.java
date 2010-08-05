@@ -25,10 +25,11 @@ import com.google.inject.name.Names;
  * module constructor, they are used to override the default implementations
  * with those specified in the file.
  * 
- * @author joshua
+ * @author joshua Harrison
  *
  */
 public class DiffableModule extends AbstractModule {
+	
 	private final Properties props;
 	
 	public DiffableModule() {
