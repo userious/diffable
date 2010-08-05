@@ -42,6 +42,7 @@ import com.google.diffable.diff.JSONHelper;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
 import com.google.diffable.tags.DiffableResourceTag;
+import com.google.diffable.utils.IOUtils;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -50,8 +51,8 @@ import com.google.inject.name.Named;
  * The FileResourceManager implements the resource manager interface using the
  * file system as its backing store.
  * 
- * @author joshua
- *
+ * @author joshua Harrison
+ * @author ibrahim Chaehoi
  */
 @Singleton
 public class FileResourceManager implements ResourceManager {
@@ -355,8 +356,11 @@ public class FileResourceManager implements ResourceManager {
 				printer.print(exc);
 			}
 		} else {
+			FileInputStream is = null;
+			FileOutputStream out = null;
 			try {
-				manifest.load(new FileInputStream(manifestFile));
+				is = new FileInputStream(manifestFile);
+				manifest.load(is);
 				Set<Object> keys = manifest.keySet();
 				// Each of the keys in the properties file should be the
 				// absolute path of a managed resource file. The value should
@@ -389,11 +393,15 @@ public class FileResourceManager implements ResourceManager {
 						currentVersions.put(managedResource, latestHash);
 					}
 				}
-				manifest.store(new FileOutputStream(manifestFile), null);
+				out = new FileOutputStream(manifestFile);
+				manifest.store(out, null);
 			} catch (Exception exc) {
 				provider.error(logger, "manifest.cantload",
 						       manifestFile.getAbsolutePath());
 				printer.print(exc);
+			}finally{
+				IOUtils.close(is);
+				IOUtils.close(out);
 			}
 		}
 	}
@@ -412,6 +420,7 @@ public class FileResourceManager implements ResourceManager {
 		// Create a file filter that only returns old versions of a managed
 		// resource.  It also deletes deprecated diffs as it's going.
 		VersionFilter filter = new VersionFilter(latestHash);
+		FileOutputStream out = null;
 		try {
 			String hash = hashResourcePath(resource);
 			File resourceFolder = getManagedResourceFolder(resource, hash);
@@ -443,15 +452,16 @@ public class FileResourceManager implements ResourceManager {
 							       newDelta.getAbsolutePath(),
 							       resource.getAbsolutePath());
 					newDelta.createNewFile();
-					FileOutputStream out = new FileOutputStream(newDelta);
+					out = new FileOutputStream(newDelta);
 					out.write(diff.getBytes());
-					out.close();
 				}
             }
 		} catch (Exception exc) {
 			provider.error(logger, "filemgr.deltaerror",
 					       resource.getAbsolutePath(), latestHash);
 			printer.print(exc);
+		}finally{
+			IOUtils.close(out);
 		}
 	}
 	
@@ -530,9 +540,14 @@ public class FileResourceManager implements ResourceManager {
 		// have changed.
 		if (!version.exists() || force) {
 			version.createNewFile();
-			FileOutputStream out = new FileOutputStream(version);
-			out.write(resourceContents.toString().getBytes());
-			out.close();
+			FileOutputStream out = null;
+			try {
+				out = new FileOutputStream(version);
+				out.write(resourceContents.toString().getBytes());
+			}finally{
+				IOUtils.close(out);
+			}
+			
 			if (keepResourcesInMemory) {
 				this.resourceContents.put(
 					resource, resourceContents.toString());
@@ -580,15 +595,15 @@ public class FileResourceManager implements ResourceManager {
 	 * @return A hex representation of the md5 checksum of the file's contents. 
 	 */
 	private String readFileContents(File toRead, StringBuffer fileContent) {
+		InputStream in = null; 
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
-			InputStream in = new FileInputStream(toRead);
+			in = new FileInputStream(toRead);
 			in = new DigestInputStream(in, md);
 			int ch;
 			while ((ch = in.read()) != -1) {
 				fileContent.append((char)ch);
 			}
-			in.close();
 			return new BigInteger(1, md.digest()).toString(16);
 		} catch (NoSuchAlgorithmException exc) {
 			provider.error(
@@ -598,6 +613,8 @@ public class FileResourceManager implements ResourceManager {
 			provider.error(
 				logger, "filemgr.readerror", toRead.getAbsolutePath());
 			printer.print(exc);
+		}finally{
+			IOUtils.close(in);
 		}
 		return null;
 	}
@@ -660,12 +677,17 @@ public class FileResourceManager implements ResourceManager {
 		manifest.put(key, value);
 		File manifestFile = new File(this.resourceStore + File.separator +
 		                             "diffable.manifest");
+		FileOutputStream out = null;
 		try {
-			manifest.store(new FileOutputStream(manifestFile), null);
+			out = new FileOutputStream(manifestFile);
+			manifest.store(out, null);
+			out.close();
 		} catch (IOException exc) {
 			provider.error(logger, "manifest.cantsave",
 					       manifestFile.getAbsolutePath());
 			printer.print(exc);
+		}finally{
+			IOUtils.close(out);
 		}
 	}
 }

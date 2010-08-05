@@ -23,7 +23,6 @@ import java.util.Properties;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import javax.servlet.ServletException;
 
 import org.apache.log4j.Logger;
 
@@ -33,10 +32,17 @@ import com.google.diffable.data.ResourceManager;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
 import com.google.diffable.tags.DiffableResourceTag;
+import com.google.diffable.utils.IOUtils;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
+/**
+ * The servlet context listener which handle the lifecycle of the resource monitor and the Guice injector 
+ * based on the servlet context creation or destruction.
+ * 
+ * @author Joshua Harrison
+ */
 public class DiffableListener implements ServletContextListener {
 	@Inject(optional=true)
 	private StackTracePrinter printer;
@@ -163,15 +169,19 @@ public class DiffableListener implements ServletContextListener {
 			File propFile = propFilePath.startsWith("/") ?
 					new File(propFilePath) :
 			        new File(currentPath + File.separator + propFilePath);
+			FileInputStream is = null;
 			try {
 				Properties props = new Properties();
-				props.load(new FileInputStream(propFile));
+				is = new FileInputStream(propFile);
+				props.load(is);
 				module.setProperties(props);
 			} catch (Exception exc) {
 				new MessageProvider().error(logger, 
 						                    "module.propfile",
 						                    propFile.getAbsolutePath());
 				new StackTracePrinter().print(exc);
+			}finally{
+				IOUtils.close(is);
 			}
 		}
 		return Guice.createInjector(module);
