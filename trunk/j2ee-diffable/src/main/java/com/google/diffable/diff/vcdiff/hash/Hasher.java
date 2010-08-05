@@ -17,6 +17,11 @@ package com.google.diffable.diff.vcdiff.hash;
 
 import com.google.inject.ImplementedBy;
 
+/**
+ * This class defines the object which will handle the hash algorithm.
+ * 
+ * @author joshua Harrison
+ */
 @ImplementedBy(RollingHash.class)
 public abstract class Hasher {
 	public abstract long hash(String toHash);
