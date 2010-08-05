@@ -18,7 +18,13 @@ package com.google.diffable.exceptions;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+/**
+ * This class defines the stacktrace printer
+ * 
+ * @author joshua Harrison
+ */
 public class StackTracePrinter {
+	
 	@Inject(optional=true) @Named("PrintStackTraces")
 	private boolean printStackTraces = false;
 	

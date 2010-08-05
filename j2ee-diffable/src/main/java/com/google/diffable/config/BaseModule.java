@@ -28,12 +28,13 @@ import com.google.inject.name.Names;
  * module constructor, they are used to override the default implementations
  * with those specified in the file.
  * 
- * @author joshua
+ * @author joshua Harrison
  *
  */
 public class BaseModule extends AbstractModule {
-	private Properties props;
+	
 	private Logger logger = Logger.getLogger(BaseModule.class);
+	private Properties props;
 	private MessageProvider provider = new MessageProvider();
 	
 	public BaseModule() {

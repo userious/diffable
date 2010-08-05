@@ -34,7 +34,7 @@ import com.google.inject.Inject;
  * for deltas.  Places in the code where such assumptions are made will be
  * marked.
  * 
- * @author joshua
+ * @author joshua Harrison
  *
  */
 public class ResourceRequest {

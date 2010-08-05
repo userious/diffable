@@ -27,7 +27,14 @@ import com.google.diffable.exceptions.StackTracePrinter;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+/**
+ * This class defines the object, which will handle the monitoring of the resource defined in the
+ * watched folders.
+ *  
+ * @author joshua Harrison
+ */
 public class ResourceMonitor extends Thread {
+
 	@Inject
 	private StackTracePrinter printer;
 	

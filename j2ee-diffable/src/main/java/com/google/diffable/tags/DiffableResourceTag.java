@@ -26,7 +26,13 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.tagext.TagSupport;
 
+/**
+ * This class defines the diffable resource tag.
+ * 
+ * @author joshua Harrison
+ */
 public class DiffableResourceTag extends TagSupport {
+
 	// Stores the resource folders to check for resources.
 	private static List<File> resourceFolders = null;
 	public static void setFolder(List<File> resourceFolders) {

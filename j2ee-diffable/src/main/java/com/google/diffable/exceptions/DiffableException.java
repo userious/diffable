@@ -15,7 +15,17 @@
  */
 package com.google.diffable.exceptions;
 
+/**
+ * This class defines the base class for the exception thrown in Diffable.
+ * 
+ * @author joshua Harrison
+ */
 public class DiffableException extends Exception {
+	
+	/**
+	 * Constructor
+	 * @param message the message
+	 */
 	public DiffableException(String message) {
 		super(message);
 	}
