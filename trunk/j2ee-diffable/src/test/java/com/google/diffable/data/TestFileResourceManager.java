@@ -48,10 +48,19 @@ public class TestFileResourceManager {
 	private String tmp;
 	private FileResourceManager mgr;
 	private Injector inj;
+	private String fileSeparator = File.separator;
 	
 	@Before
 	public void setUp() throws Throwable {
-		tempDir = new File("./temp");
+		
+		String userDir = System.getProperty("user.dir");
+		tempDir = new File(userDir, "temp");
+		
+		// Clean dir
+		if(tempDir.exists()){
+			deleteDir(tempDir);
+		}
+		
 		tempDir.mkdir();
 		tmp = tempDir.getAbsolutePath() + File.separator;
 		inj = Guice.createInjector(new AbstractModule() {
@@ -118,7 +127,7 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						doesntExist.getAbsolutePath());
+							"file://"+doesntExist.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
@@ -159,7 +168,7 @@ public class TestFileResourceManager {
 			new File(resourceStore.getAbsolutePath() + "/diffable.manifest");
 		manifest.createNewFile();
 		Properties manifestProps = new Properties();
-		manifestProps.put("/resource/doesnt/exist", "fakehash");
+		manifestProps.put(tmp+"resource"+fileSeparator+"doesnt"+fileSeparator+"exist", "fakehash");
 		manifestProps.store(new FileOutputStream(manifest), null);
 		
 		File resourceFolder =
@@ -174,7 +183,7 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+						"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
@@ -202,7 +211,7 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+							"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
@@ -228,7 +237,7 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+							"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
@@ -388,7 +397,7 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+							"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
