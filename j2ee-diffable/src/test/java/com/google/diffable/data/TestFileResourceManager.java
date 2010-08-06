@@ -150,7 +150,7 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						doesntExist.getAbsolutePath());
+						"file://"+doesntExist.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
@@ -212,6 +212,37 @@ public class TestFileResourceManager {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
 							"file://"+resourceStore.getAbsolutePath());
+			}
+		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
+		mgr.initialize();
+		assertEquals(1, mgr.getManagedResources().size());
+		assertEquals(managedFile, mgr.getManagedResources().get(0));
+		assertTrue(new File(
+			resourceStore.getAbsolutePath() + "/fakehash").exists());
+		assertEquals(new File(
+			resourceStore.getAbsolutePath() + "/fakehash").lastModified(),
+			managedFile.lastModified());
+	}
+	
+	@Test
+	public void testGetManagedResourcesAndManagedResourceFolderCreatedWithRelativeStore() 
+	throws Throwable {
+	    File managedFile = new File(tmp + "tempFile");
+	    managedFile.createNewFile();
+		final File resourceStore = new File(tmp + "store");
+		resourceStore.mkdir();
+		File manifest =
+			new File(resourceStore.getAbsolutePath() + "/diffable.manifest");
+		manifest.createNewFile();
+		Properties manifestProps = new Properties();
+		manifestProps.put(managedFile.getAbsolutePath(), "fakehash");
+		manifestProps.store(new FileOutputStream(manifest), null);
+		inj.createChildInjector(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bindConstant().annotatedWith(
+					Names.named("ResourceStorePath")).to(
+							"store"); // Use relative path
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
 		mgr.initialize();
