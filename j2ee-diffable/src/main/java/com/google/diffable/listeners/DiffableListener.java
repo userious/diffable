@@ -101,7 +101,7 @@ public class DiffableListener implements ServletContextListener {
 		
 		// Initialize the resource.
 		try {
-			ctx.setAttribute(Constants.DIFFABLE_RESOURCE_MANAGER, mgr.initialize());
+			mgr.initialize();
 		} catch (ResourceManagerException exc) {
 			provider.error(logger, "resourcestore.problem");
 			printer.print(exc);
