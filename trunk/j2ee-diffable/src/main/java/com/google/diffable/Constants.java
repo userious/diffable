@@ -31,4 +31,7 @@ public final class Constants {
 	/** The attribute name of the diffable resource manager */
 	public static final String DIFFABLE_RESOURCE_MANAGER = "diffable.resourceManager";
 
+	/** The attribute name of the diffable guive injector */
+	public static final String DIFFABLE_GUICE_INJECTOR = "diffable.DiffableGuiceInjector";
+
 }
