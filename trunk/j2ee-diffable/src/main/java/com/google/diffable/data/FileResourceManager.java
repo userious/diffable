@@ -40,12 +40,12 @@ import javax.servlet.ServletContext;
 
 import org.apache.log4j.Logger;
 
+import com.google.diffable.Constants;
 import com.google.diffable.config.MessageProvider;
 import com.google.diffable.diff.Differ;
 import com.google.diffable.diff.JSONHelper;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
-import com.google.diffable.tags.DiffableResourceTag;
 import com.google.diffable.utils.IOUtils;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -61,9 +61,6 @@ import com.google.inject.name.Named;
 @Singleton
 public class FileResourceManager implements ResourceManager {
 	
-	/** The file URI scheme prefix */
-	private static final String FILE_URI_SCHEME_PREFIX = "file://";
-
 	@Inject
 	private StackTracePrinter printer;
 	
@@ -115,6 +112,9 @@ public class FileResourceManager implements ResourceManager {
 	 *
 	 */
 	private class VersionFilter implements FileFilter {
+		
+		private static final String VERSION_FILE_EXTENSION = "version";
+		
 		private String currentHash = null;
 		private File currentFile = null;
 		
@@ -129,7 +129,7 @@ public class FileResourceManager implements ResourceManager {
 		@Override
 		public boolean accept(File current) {
 			String extension = current.getName().split("\\.")[1];
-			if (extension.equals("version")) {
+			if (extension.equals(VERSION_FILE_EXTENSION)) {
 				// Return false for the current version.
 				if (current.getAbsolutePath().contains(this.currentHash)) {
 					this.currentFile = current;
@@ -267,9 +267,10 @@ public class FileResourceManager implements ResourceManager {
 					provider.info(logger, "filemgr.gendeltas",
 						      	  resource.getAbsolutePath());
 					generateDeltas(resource, latestHash);
-					// Update the Diffable tag so it can correctly identify
+					// Update the Diffable context so it can correctly identify
 					// the most recent version of this resource.
-					DiffableResourceTag.setCurrentVersion(resource, latestHash);
+					DiffableContext diffableCtx = (DiffableContext) ctx.getAttribute(Constants.DIFFABLE_CONTEXT);
+					diffableCtx.setCurrentVersion(resource, latestHash);
 					currentVersions.put(resource, latestHash);
 				}
 			} catch (Exception exc) {
@@ -298,8 +299,8 @@ public class FileResourceManager implements ResourceManager {
 		paths.add(currentPath + ".diffable"); 
 		if (resourceStorePath != null) {
 			
-			if(resourceStorePath.startsWith(FILE_URI_SCHEME_PREFIX)){
-				resourceStorePath = resourceStorePath.substring(FILE_URI_SCHEME_PREFIX.length());
+			if(resourceStorePath.startsWith(Constants.FILE_URI_SCHEME_PREFIX)){
+				resourceStorePath = resourceStorePath.substring(Constants.FILE_URI_SCHEME_PREFIX.length());
 			}else{
 				resourceStorePath =
 					currentPath + resourceStorePath;
@@ -400,10 +401,11 @@ public class FileResourceManager implements ResourceManager {
 						// tag on start up.
 						String latestHash =
 							readInAndCopyLatestVersion(managedResource, true);
-						// Update the Diffable tag so it can correctly identify
+						// Update the Diffable context so it can correctly identify
 						// the most recent version of this resource.
-						DiffableResourceTag.setCurrentVersion(managedResource,
-								                              latestHash);
+						DiffableContext diffableCtx = (DiffableContext) ctx.getAttribute(Constants.DIFFABLE_CONTEXT);
+						diffableCtx.setCurrentVersion(managedResource, latestHash);
+						
 						currentVersions.put(managedResource, latestHash);
 					}
 				}
@@ -523,9 +525,11 @@ public class FileResourceManager implements ResourceManager {
 			manifestPutAndSave(resource.getAbsolutePath(), resourceNameHash);
 			
 			String latestHash = readInAndCopyLatestVersion(resource, false);
-			// Update the Diffable tag so it can correctly identify
+			// Update the Diffable context so it can correctly identify
 			// the most recent version of this resource.
-			DiffableResourceTag.setCurrentVersion(resource, latestHash);
+			DiffableContext diffableCtx = (DiffableContext) ctx.getAttribute(Constants.DIFFABLE_CONTEXT);
+			diffableCtx.setCurrentVersion(resource, latestHash);
+			
 			currentVersions.put(resource, latestHash);
 		}
 	}

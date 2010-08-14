@@ -27,12 +27,13 @@ import javax.servlet.ServletContextListener;
 
 import org.apache.log4j.Logger;
 
+import com.google.diffable.Constants;
 import com.google.diffable.config.BaseModule;
 import com.google.diffable.config.MessageProvider;
+import com.google.diffable.data.DiffableContext;
 import com.google.diffable.data.ResourceManager;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
-import com.google.diffable.tags.DiffableResourceTag;
 import com.google.diffable.utils.IOUtils;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -99,7 +100,7 @@ public class DiffableListener implements ServletContextListener {
 		
 		// Initialize the resource.
 		try {
-			mgr.initialize();
+			ctx.setAttribute(Constants.DIFFABLE_RESOURCE_MANAGER, mgr.initialize());
 		} catch (ResourceManagerException exc) {
 			provider.error(logger, "resourcestore.problem");
 			printer.print(exc);
@@ -114,6 +115,9 @@ public class DiffableListener implements ServletContextListener {
 		String currentPath = ctx.getRealPath("");
 		String resourceFolders = ctx.getInitParameter("ResourceFolders");
 		ArrayList<File> foundFolders = new ArrayList<File>();
+		
+		DiffableContext diffableCtx = new DiffableContext();
+		
 		if (resourceFolders == null) {
 			String error =
 				provider.getMessage(
@@ -136,7 +140,8 @@ public class DiffableListener implements ServletContextListener {
 				}
 			}
 			// Set the folders on the DiffableTag so it can locate resources.
-			DiffableResourceTag.setFolder(foundFolders);
+			//DiffableResourceTag.setFolder(foundFolders);
+			diffableCtx.setFolder(foundFolders);
 			
 			// Start up the monitoring thread.
 			monitor.setFolderAndManager(foundFolders, mgr);
@@ -148,10 +153,12 @@ public class DiffableListener implements ServletContextListener {
 		// thrown if this parameter is not defined.
 		String servletPrefix = ctx.getInitParameter("ServletPrefix");
 		if (servletPrefix != null) {
-			DiffableResourceTag.setServletPrefix(servletPrefix);
+			diffableCtx.setServletPrefix(servletPrefix);
 		} else {
 			provider.error(logger, "servlet.noservletprefix");
 		}
+		
+		ctx.setAttribute(Constants.DIFFABLE_CONTEXT, diffableCtx);
 	}
 	
 	/**

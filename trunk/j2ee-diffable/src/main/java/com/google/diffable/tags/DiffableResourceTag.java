@@ -18,43 +18,25 @@ package com.google.diffable.tags;
 import java.io.File;
 import java.math.BigInteger;
 import java.security.MessageDigest;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.tagext.TagSupport;
 
+import com.google.diffable.Constants;
+import com.google.diffable.data.DiffableContext;
+
 /**
  * This class defines the diffable resource tag.
  * 
  * @author joshua Harrison
+ * @author ibrahim Chaehoi
  */
 public class DiffableResourceTag extends TagSupport {
 
-	// Stores the resource folders to check for resources.
-	private static List<File> resourceFolders = null;
-	public static void setFolder(List<File> resourceFolders) {
-		DiffableResourceTag.resourceFolders = resourceFolders;
-	}
-	
-	// Stores the servlet prefix set in the diffable servlet initialzation
-	// parameters.
-	private static String servletPrefix = null;
-	public static void setServletPrefix(String servletPrefix) {
-		DiffableResourceTag.servletPrefix = servletPrefix;
-	}
-	
-	// Cache for storing the most recent version of a managed resource. Used by
-	// the tag to insert the current version of a resource into the page
-	// context.
-	private static Map<File, String> currentVersions = 
-		new HashMap<File, String>();
-	public static void setCurrentVersion(File resource, String currentVersion) {
-		DiffableResourceTag.currentVersions.put(resource, currentVersion);
-	}
-		
+	/** The serial version UID */
+	private static final long serialVersionUID = 6375497229840702819L;
 	private String resource;
 	private String type;
 	
@@ -76,8 +58,13 @@ public class DiffableResourceTag extends TagSupport {
 	
 	@Override
 	public int doStartTag() throws JspException {
+		
+		DiffableContext ctx = (DiffableContext) pageContext.getServletContext().getAttribute(Constants.DIFFABLE_CONTEXT);
+		if(ctx == null){
+			throw new JspException("No diffable context defined!");
+		}
 		try {
-			if (servletPrefix == null) {
+			if (ctx.getServletPrefix() == null) {
 				throw new JspException(
 					"No servlet prefix defined!");
 			}
@@ -90,7 +77,7 @@ public class DiffableResourceTag extends TagSupport {
 		
 			File found = null;
 			if (!(new File(resource).exists())) {
-				for (File folder : DiffableResourceTag.resourceFolders) {
+				for (File folder : ctx.getResourceFolders()) {
 					File test =
 						new File(folder.getAbsolutePath() +
 								 File.separator + resource);
@@ -105,25 +92,28 @@ public class DiffableResourceTag extends TagSupport {
 			if (found == null) {
 				throw new JspException("Cannot find resource " +
 				    resource + " referenced in DiffableTag");
-			} else if(!DiffableResourceTag.currentVersions.containsKey(found)) {
-				throw new JspException(
-					"Cannot find current version of resource '" +
-					found.getAbsolutePath() + ".'");
 			} else {
-				String resourceHash = hashPath(found);
-				pageContext.getOut().println("<script type='text/javascript'>");
-				pageContext.getOut().println(
-					"if(!window['deltajs']) { window['deltajs'] = {}; }");
-				pageContext.getOut().println(
-					"window['deltajs']['" + resourceHash + "']={};");
-				pageContext.getOut().println(
-					"window['deltajs']['" + resourceHash + "']" +
-					"['cv'] = '" +
-					DiffableResourceTag.currentVersions.get(found) + "';");
-				pageContext.getOut().println("</script>");
-				pageContext.getOut().println(
-				    "<script type='text/javascript' src='" +
-					servletPrefix + "/" + resourceHash + "'></script>");
+				Map<File, String> currentVersions = ctx.getCurrentVersions();
+				if(!currentVersions.containsKey(found)) {
+					throw new JspException(
+						"Cannot find current version of resource '" +
+						found.getAbsolutePath() + ".'");
+				} else {
+					String resourceHash = hashPath(found);
+					pageContext.getOut().println("<script type='text/javascript'>");
+					pageContext.getOut().println(
+						"if(!window['deltajs']) { window['deltajs'] = {}; }");
+					pageContext.getOut().println(
+						"window['deltajs']['" + resourceHash + "']={};");
+					pageContext.getOut().println(
+						"window['deltajs']['" + resourceHash + "']" +
+						"['cv'] = '" +
+						currentVersions.get(found) + "';");
+					pageContext.getOut().println("</script>");
+					pageContext.getOut().println(
+					    "<script type='text/javascript' src='" +
+						ctx.getServletPrefix() + "/" + resourceHash + "'></script>");
+				}
 			}
 		} catch (Exception exc) {
 			exc.printStackTrace();
