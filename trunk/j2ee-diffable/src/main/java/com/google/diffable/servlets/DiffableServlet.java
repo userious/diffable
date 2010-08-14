@@ -71,7 +71,8 @@ public class DiffableServlet extends HttpServlet {
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
 		inj = (Injector)
-		    config.getServletContext().getAttribute("DiffableGuiceInjector");
+		    config.getServletContext().getAttribute(
+		    	"diffable.DiffableGuiceInjector");
 		inj.getMembersInjector(DiffableServlet.class).injectMembers(this);
 		
 		// Set the 2010 calendar.

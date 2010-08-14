@@ -79,7 +79,7 @@ public class DiffableListener implements ServletContextListener {
 		inj = initializeInjectedProperties(ctx, baseModule);
 		
 		// Save the injector for later use by Diffable.
-		ctx.setAttribute("DiffableGuiceInjector", inj);
+		ctx.setAttribute("diffable.DiffableGuiceInjector", inj);
 		
 		// Initialize the resource manager. For testing, the DiffableListener
 		// is retrieved via Guice with a mock ResourceManager injected already,
@@ -94,9 +94,9 @@ public class DiffableListener implements ServletContextListener {
 		provider = inj.getInstance(MessageProvider.class);
 		printer = inj.getInstance(StackTracePrinter.class);
 		
-		// Initialize the resource manager and store it in the servlet context.
+		// Initialize the resource.
 		try {
-			ctx.setAttribute("ResourceManager", mgr.initialize());
+			mgr.initialize();
 		} catch (ResourceManagerException exc) {
 			provider.error(logger, "resourcestore.problem");
 			printer.print(exc);
