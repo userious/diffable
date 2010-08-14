@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.Timer;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -36,6 +37,7 @@ import com.google.diffable.utils.IOUtils;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.google.inject.name.Named;
 
 /**
  * The servlet context listener which handle the lifecycle of the resource monitor and the Guice injector 
@@ -56,19 +58,22 @@ public class DiffableListener implements ServletContextListener {
 	@Inject(optional=true)
 	private MessageProvider provider;
 	
+	@Inject(optional=true)
+	private ResourceMonitor monitor;
+	
+	// The interval to wait between checking for changes in managed resources.
+	// It is interpreted in milliseconds.
+	@Inject(optional=true) @Named("ResourceMonitorInterval")
+	private int interval = 2000;
+	
 	private BaseModule baseModule = null;
 	
 	private Injector inj = null;
 	
-	private ResourceMonitor monitor;
+	private Timer timer = new Timer("folderMonitor", true);
 	
 	public void contextDestroyed(ServletContextEvent ctxEvent) {
-		this.monitor.stopProcessing();
-		try {
-			this.monitor.join();
-		} catch (InterruptedException exc) {
-			printer.print(exc);
-		}
+		timer.cancel();
 	}
 	
 	public void contextInitialized(ServletContextEvent ctxEvent) {
@@ -81,6 +86,9 @@ public class DiffableListener implements ServletContextListener {
 		// Save the injector for later use by Diffable.
 		ctx.setAttribute("diffable.DiffableGuiceInjector", inj);
 		
+		// Inject members into the listener via Guice.
+		inj.getMembersInjector(DiffableListener.class).injectMembers(this);
+		
 		// Initialize the resource manager. For testing, the DiffableListener
 		// is retrieved via Guice with a mock ResourceManager injected already,
 		// which is why this conditional check is performed.
@@ -88,11 +96,6 @@ public class DiffableListener implements ServletContextListener {
 			mgr = inj.getInstance(ResourceManager.class);
 		}
 		mgr.setServletContext(ctx);
-		
-		// By retrieving the message provider via the injector, the message
-		// bundles path can be overridden.
-		provider = inj.getInstance(MessageProvider.class);
-		printer = inj.getInstance(StackTracePrinter.class);
 		
 		// Initialize the resource.
 		try {
@@ -136,10 +139,8 @@ public class DiffableListener implements ServletContextListener {
 			DiffableResourceTag.setFolder(foundFolders);
 			
 			// Start up the monitoring thread.
-			monitor = inj.getInstance(ResourceMonitor.class);
 			monitor.setFolderAndManager(foundFolders, mgr);
-			monitor.setDaemon(true);
-			monitor.start();
+			timer.schedule(monitor, 0, interval);
 		}
 		
 		// Get the servlet prefix initialization parameter.  This is mandatory
