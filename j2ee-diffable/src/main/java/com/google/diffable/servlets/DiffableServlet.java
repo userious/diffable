@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+import com.google.diffable.Constants;
 import com.google.diffable.config.MessageProvider;
 import com.google.diffable.data.ResourceManager;
 import com.google.diffable.data.ResourceRequest;
@@ -72,7 +73,7 @@ public class DiffableServlet extends HttpServlet {
 		super.init(config);
 		inj = (Injector)
 		    config.getServletContext().getAttribute(
-		    	"diffable.DiffableGuiceInjector");
+		    		Constants.DIFFABLE_GUICE_INJECTOR);
 		inj.getMembersInjector(DiffableServlet.class).injectMembers(this);
 		
 		// Set the 2010 calendar.

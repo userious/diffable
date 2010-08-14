@@ -47,6 +47,7 @@ import com.google.inject.name.Named;
  * @author Joshua Harrison
  */
 public class DiffableListener implements ServletContextListener {
+	
 	@Inject(optional=true)
 	private StackTracePrinter printer;
 	
@@ -85,7 +86,7 @@ public class DiffableListener implements ServletContextListener {
 		inj = initializeInjectedProperties(ctx, baseModule);
 		
 		// Save the injector for later use by Diffable.
-		ctx.setAttribute("diffable.DiffableGuiceInjector", inj);
+		ctx.setAttribute(Constants.DIFFABLE_GUICE_INJECTOR, inj);
 		
 		// Inject members into the listener via Guice.
 		inj.getMembersInjector(DiffableListener.class).injectMembers(this);
