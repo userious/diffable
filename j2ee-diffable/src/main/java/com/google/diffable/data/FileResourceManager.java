@@ -88,9 +88,6 @@ public class FileResourceManager implements ResourceManager {
 	/** The resource store */
 	private File resourceStore = null;
 	
-	/** The webapp base directory */
-	private String webAppBaseDir;
-	
 	/** The diffable context */
 	private DiffableContext diffableCtx;
 	
@@ -292,7 +289,7 @@ public class FileResourceManager implements ResourceManager {
 	throws ResourceManagerException {
 		
 		diffableCtx = ctx;
-		webAppBaseDir = baseDir;
+		String webAppBaseDir = baseDir;
 		if(!webAppBaseDir.endsWith(File.separator)){
 			webAppBaseDir += File.separator;
 		}
@@ -301,7 +298,6 @@ public class FileResourceManager implements ResourceManager {
 		// is interpreted as absolute.  Otherwise, it is interpreted relative to
 		// the web app folder.
 		ArrayList<String> paths = new ArrayList<String>();
-		//String currentPath = ctx.getRealPath("/");
 		paths.add(webAppBaseDir + ".diffable"); 
 		if (resourceStorePath != null) {
 			
