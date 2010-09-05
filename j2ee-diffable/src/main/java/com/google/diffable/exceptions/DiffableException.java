@@ -22,6 +22,9 @@ package com.google.diffable.exceptions;
  */
 public class DiffableException extends Exception {
 	
+	/** The serial version UID */
+	private static final long serialVersionUID = -3815080956654747071L;
+
 	/**
 	 * Constructor
 	 * @param message the message

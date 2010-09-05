@@ -47,7 +47,7 @@ public class MessageProvider {
 	public String getMessage(String propFile, String messageId, String...args) {
 		ResourceBundle bundle =
 			ResourceBundle.getBundle(bundlePath + propFile);
-		return String.format(bundle.getString(messageId), args);
+		return String.format(bundle.getString(messageId), (Object[])args);
 	}
 	
 	public String error(String messageId) {
