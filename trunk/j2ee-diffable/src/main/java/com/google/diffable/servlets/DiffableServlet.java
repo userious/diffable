@@ -16,9 +16,6 @@
 package com.google.diffable.servlets;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Locale;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -30,12 +27,9 @@ import org.apache.log4j.Logger;
 
 import com.google.diffable.Constants;
 import com.google.diffable.config.MessageProvider;
-import com.google.diffable.data.ResourceManager;
 import com.google.diffable.data.ResourceRequest;
-import com.google.diffable.diff.JSONHelper;
 import com.google.diffable.exceptions.StackTracePrinter;
-import com.google.diffable.scripts.DeltaBootstrapWrapper;
-import com.google.diffable.scripts.JsDictionaryBootstrapWrapper;
+import com.google.diffable.handler.DiffableResourceHandler;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
@@ -46,27 +40,27 @@ import com.google.inject.Injector;
  */
 public class DiffableServlet extends HttpServlet {
 
+	/** The serial version UID */
+	private static final long serialVersionUID = -5774775375357121469L;
+
 	@Inject
+	/** The stacktrace printer */
 	private StackTracePrinter printer;
 	
 	@Inject
+	/** The message provider */
 	private MessageProvider provider;
 	
 	@Inject(optional=true)
+	/** The logger */
 	private Logger logger = Logger.getLogger(DiffableServlet.class);
 	
 	@Inject
-	private ResourceManager mgr;
+	/** The diffable resource handler*/
+	private DiffableResourceHandler handler;
 	
-	@Inject
-	private JsDictionaryBootstrapWrapper jsDictWrapper;
-	
-	@Inject
-	private DeltaBootstrapWrapper jsDiffWrapper;
-	
+	/** The Guice injector */
 	private Injector inj;
-	
-	private Calendar jan2000 = Calendar.getInstance();
 	
 	@Override
 	public void init(ServletConfig config) throws ServletException {
@@ -75,9 +69,6 @@ public class DiffableServlet extends HttpServlet {
 		    config.getServletContext().getAttribute(
 		    		Constants.DIFFABLE_GUICE_INJECTOR);
 		inj.getMembersInjector(DiffableServlet.class).injectMembers(this);
-		
-		// Set the 2010 calendar.
-		jan2000.set(2000, 1, 1);
 	}
 	
 	@Override
@@ -90,38 +81,8 @@ public class DiffableServlet extends HttpServlet {
 		provider.debug(logger, "servlet.resourcerequest", requestString);
 		try {
 			ResourceRequest request = inj.getInstance(ResourceRequest.class); 
-			request.setRequest(requestString);
-			mgr.getResource(request);
-			if (request.getResponse() != null) {
-				resp.setStatus(200);
-				Calendar twoYearsFromNow = Calendar.getInstance();
-				twoYearsFromNow.set(Calendar.YEAR, 
-						            twoYearsFromNow.get(Calendar.YEAR) + 2);
-				// All responses are denoted as last being modified on Jan 1,
-				// 2000 to allow for very agressive caching.
-				resp.setHeader("Last-Modified",
-					new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z",
-							             Locale.US).format(
-						jan2000.getTime()));
-				resp.setHeader("Cache-Control", "public, max-age=63072000");
-				resp.setHeader("Expires", 
-					new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z",
-							             Locale.US).format(
-						twoYearsFromNow.getTime()));
-				if (request.isDiff()) {
-					String response = jsDiffWrapper.render(
-						request.getResourceHash(), request.getResponse());
-					resp.setContentLength(response.length());
-					resp.getWriter().print(response);
-				} else {
-					String response = jsDictWrapper.render(
-						request.getResourceHash(),
-						JSONHelper.quote(request.getResponse()),
-						request.getNewVersionHash(), basePath);
-					resp.setContentLength(response.length());
-					resp.getWriter().print(response);
-				}
-			} else {
+			request.setRequest(basePath, requestString);
+			if(!handler.handleResourceRequest(request, resp)){
 				resp.setStatus(404);
 			}
 		} catch (Exception exc) {
@@ -137,10 +98,4 @@ public class DiffableServlet extends HttpServlet {
 		doGet(req, resp);
 	}
 	
-	@Override
-	protected long getLastModified(HttpServletRequest req) {
-		// Last modified times are also returned as Jan 1, 2000 to match with
-		// the last-modified cache response header.
-		return jan2000.getTimeInMillis();
-	}
 }

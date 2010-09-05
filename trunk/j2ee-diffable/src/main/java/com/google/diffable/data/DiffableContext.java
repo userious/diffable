@@ -21,8 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.diffable.tags.DiffableResourceTag;
-
 /**
  * This class defines the diffable context which contains
  * data about the current file versions, the resource folders, ...  
@@ -31,40 +29,79 @@ import com.google.diffable.tags.DiffableResourceTag;
  */
 public class DiffableContext implements Serializable {
 
-	// Stores the resource folders to check for resources.
+	/** The serial version UID */
+	private static final long serialVersionUID = 5324694195292552070L;
+
+	/** The list of resource folders where check for resources. */ 
 	private List<File> resourceFolders = null;
 	
-	// Stores the servlet prefix set in the diffable servlet initialzation
-	// parameters.
+	/** The servlet prefix set in the diffable servlet initialzation parameters. */
 	private String servletPrefix = null;
 	
-	// Cache for storing the most recent version of a managed resource. Used by
-	// the tag to insert the current version of a resource into the page
-	// context.
+	/**
+	 * Cache for storing the most recent version of a managed resource. Used by
+	 * the tag to insert the current version of a resource into the page
+	 * context.
+	 */
 	private Map<File, String> currentVersions = 
 		new HashMap<File, String>();
 
+	/**
+	 * Returns the resource folders
+	 * @return the resource folders
+	 */
 	public List<File> getResourceFolders() {
 		return resourceFolders;
 	}
 
+	/**
+	 * Returns the Diffable servlet prefix
+	 * @return the Diffable servlet prefix
+	 */
 	public String getServletPrefix() {
 		return servletPrefix;
 	}
 
+	/**
+	 * Returns the map of resources current version 
+	 * @return the map of resources current version
+	 */
 	public Map<File, String> getCurrentVersions() {
 		return currentVersions;
 	}
 
+	/**
+	 * Sets the resource folder
+	 * @param resourceFolders the resource folders to set
+	 */
 	public void setFolder(List<File> resourceFolders) {
 		this.resourceFolders = resourceFolders;
 	}
 	
+	/**
+	 * Sets the servlet prefix 
+	 * @param servletPrefix the servlet prefix to set
+	 */
 	public void setServletPrefix(String servletPrefix) {
 		this.servletPrefix = servletPrefix;
 	}
 	
+	/**
+	 * Sets the current version of a resource
+	 * @param resource the resource
+	 * @param currentVersion the current version
+	 */
 	public void setCurrentVersion(File resource, String currentVersion) {
 		currentVersions.put(resource, currentVersion);
+	}
+
+	/**
+	 * Returns the current version of a resource
+	 * @param resource the resource
+	 * @return the current version
+	 */
+	public String getCurrentVersion(File resource) {
+		
+		return currentVersions.get(resource);
 	}
 }

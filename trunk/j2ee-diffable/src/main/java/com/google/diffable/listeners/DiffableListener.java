@@ -91,17 +91,21 @@ public class DiffableListener implements ServletContextListener {
 		// Inject members into the listener via Guice.
 		inj.getMembersInjector(DiffableListener.class).injectMembers(this);
 		
+		// Initialize the diffable context 
+		DiffableContext diffableCtx = new DiffableContext();
+		ctx.setAttribute(Constants.DIFFABLE_CONTEXT, diffableCtx);
+		
 		// Initialize the resource manager. For testing, the DiffableListener
 		// is retrieved via Guice with a mock ResourceManager injected already,
 		// which is why this conditional check is performed.
 		if (mgr == null) {
 			mgr = inj.getInstance(ResourceManager.class);
 		}
-		mgr.setServletContext(ctx);
 		
 		// Initialize the resource.
 		try {
-			mgr.initialize();
+			String webAppBaseDir = ctx.getRealPath("/");
+			mgr.initialize(webAppBaseDir, diffableCtx);
 		} catch (ResourceManagerException exc) {
 			provider.error(logger, "resourcestore.problem");
 			printer.print(exc);
@@ -116,8 +120,6 @@ public class DiffableListener implements ServletContextListener {
 		String currentPath = ctx.getRealPath("");
 		String resourceFolders = ctx.getInitParameter("ResourceFolders");
 		ArrayList<File> foundFolders = new ArrayList<File>();
-		
-		DiffableContext diffableCtx = new DiffableContext();
 		
 		if (resourceFolders == null) {
 			String error =
@@ -159,7 +161,6 @@ public class DiffableListener implements ServletContextListener {
 			provider.error(logger, "servlet.noservletprefix");
 		}
 		
-		ctx.setAttribute(Constants.DIFFABLE_CONTEXT, diffableCtx);
 	}
 	
 	/**

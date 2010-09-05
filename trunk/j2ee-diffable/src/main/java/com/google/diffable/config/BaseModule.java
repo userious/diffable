@@ -67,6 +67,7 @@ public class BaseModule extends AbstractModule {
 	 * and attempts to bind the corresponding value as the implementation class
 	 * for the given interface.
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void bindImplementationOverrides() {
 		Enumeration<?> names = props.propertyNames();
 		while (names.hasMoreElements()) {

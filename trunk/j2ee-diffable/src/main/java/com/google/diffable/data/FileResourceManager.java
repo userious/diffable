@@ -36,8 +36,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.servlet.ServletContext;
-
 import org.apache.log4j.Logger;
 
 import com.google.diffable.Constants;
@@ -77,22 +75,26 @@ public class FileResourceManager implements ResourceManager {
 	@Inject(optional=true) @Named(value="KeepResourcesInMemory")
 	private boolean keepResourcesInMemory = true;
 	
+	/** The map of resource content */
 	private Map<File, String> resourceContents = new HashMap<File, String>();
 	
 	/** Used to reference managed resources by their path hash. */
 	private Map<String, File> hashsToResources = new HashMap<String, File>();
 	
-	/** Used to store the most current version of a given managed resource. */
-	private Map<File, String> currentVersions = new HashMap<File, String>();
-	
 	/** The resource store path is provided by the DiffableConfigProperties file. */
 	@Inject(optional=true) @Named(value="ResourceStorePath")
 	private String resourceStorePath = null;
 	
+	/** The resource store */
 	private File resourceStore = null;
 	
-	private ServletContext ctx;
+	/** The webapp base directory */
+	private String webAppBaseDir;
 	
+	/** The diffable context */
+	private DiffableContext diffableCtx;
+	
+	/** The differ */
 	private Differ differ = null;
 
 	/**
@@ -203,7 +205,7 @@ public class FileResourceManager implements ResourceManager {
 				} else {
 					request.setResponse(readFileContents(resource));
 				}
-				request.setNewVersionHash(currentVersions.get(resource));
+				request.setNewVersionHash(diffableCtx.getCurrentVersion(resource));
 			}
 		}
 	}
@@ -269,9 +271,7 @@ public class FileResourceManager implements ResourceManager {
 					generateDeltas(resource, latestHash);
 					// Update the Diffable context so it can correctly identify
 					// the most recent version of this resource.
-					DiffableContext diffableCtx = (DiffableContext) ctx.getAttribute(Constants.DIFFABLE_CONTEXT);
 					diffableCtx.setCurrentVersion(resource, latestHash);
-					currentVersions.put(resource, latestHash);
 				}
 			} catch (Exception exc) {
 				printer.print(exc);
@@ -288,22 +288,28 @@ public class FileResourceManager implements ResourceManager {
 	}
 
 	@Override
-	public ResourceManager initialize()
+	public ResourceManager initialize(String baseDir, DiffableContext ctx)
 	throws ResourceManagerException {
+		
+		diffableCtx = ctx;
+		webAppBaseDir = baseDir;
+		if(webAppBaseDir.endsWith(File.separator)){
+			webAppBaseDir += File.separator;
+		}
 		// If the resource store path is not defined, it defaults to ".diffable"
 		// relative to the web app folder.  If the path starts with a slash, it
 		// is interpreted as absolute.  Otherwise, it is interpreted relative to
 		// the web app folder.
 		ArrayList<String> paths = new ArrayList<String>();
-		String currentPath = ctx.getRealPath("/");
-		paths.add(currentPath + ".diffable"); 
+		//String currentPath = ctx.getRealPath("/");
+		paths.add(webAppBaseDir + ".diffable"); 
 		if (resourceStorePath != null) {
 			
 			if(resourceStorePath.startsWith(Constants.FILE_URI_SCHEME_PREFIX)){
 				resourceStorePath = resourceStorePath.substring(Constants.FILE_URI_SCHEME_PREFIX.length());
 			}else{
 				resourceStorePath =
-					currentPath + resourceStorePath;
+					webAppBaseDir + resourceStorePath;
 			}
 			
 			paths.add(0, resourceStorePath);
@@ -338,11 +344,6 @@ public class FileResourceManager implements ResourceManager {
 		}
 	}
 	
-	@Override
-	public void setServletContext(ServletContext ctx) {
-		this.ctx = ctx;
-	}
-
 	/**
 	 * The FileResourceManager uses a manifest file to persist information
 	 * about the resources it is managing.  The file keeps track of which file
@@ -403,10 +404,7 @@ public class FileResourceManager implements ResourceManager {
 							readInAndCopyLatestVersion(managedResource, true);
 						// Update the Diffable context so it can correctly identify
 						// the most recent version of this resource.
-						DiffableContext diffableCtx = (DiffableContext) ctx.getAttribute(Constants.DIFFABLE_CONTEXT);
 						diffableCtx.setCurrentVersion(managedResource, latestHash);
-						
-						currentVersions.put(managedResource, latestHash);
 					}
 				}
 				out = new FileOutputStream(manifestFile);
@@ -527,10 +525,7 @@ public class FileResourceManager implements ResourceManager {
 			String latestHash = readInAndCopyLatestVersion(resource, false);
 			// Update the Diffable context so it can correctly identify
 			// the most recent version of this resource.
-			DiffableContext diffableCtx = (DiffableContext) ctx.getAttribute(Constants.DIFFABLE_CONTEXT);
 			diffableCtx.setCurrentVersion(resource, latestHash);
-			
-			currentVersions.put(resource, latestHash);
 		}
 	}
 
