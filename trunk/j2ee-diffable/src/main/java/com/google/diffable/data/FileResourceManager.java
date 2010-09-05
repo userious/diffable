@@ -293,7 +293,7 @@ public class FileResourceManager implements ResourceManager {
 		
 		diffableCtx = ctx;
 		webAppBaseDir = baseDir;
-		if(webAppBaseDir.endsWith(File.separator)){
+		if(!webAppBaseDir.endsWith(File.separator)){
 			webAppBaseDir += File.separator;
 		}
 		// If the resource store path is not defined, it defaults to ".diffable"
