@@ -23,8 +23,7 @@ First, a context parameter, "ResourceFolders," must be created.  This parameter 
 {{{
   <context-param>
       <description>
-          Location of properties provided to Guice for loading information and
-          implementation overrides for the overall Diffable application.
+          Location of resources to be managed by Diffable.
       </description>
       <param-name>ResourceFolders</param-name>
       <param-value>WEB-INF/javascript</param-value>
