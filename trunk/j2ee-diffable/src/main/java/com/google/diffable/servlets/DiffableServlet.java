@@ -78,16 +78,23 @@ public class DiffableServlet extends HttpServlet {
 		// name, which includes all information after the servlet path.
 		String basePath = req.getContextPath() + req.getServletPath() + "/";
 		String requestString = req.getRequestURI().replace(basePath, "");
+		// Remove any preceding slashes as these would correspond to empty
+		// paths, i.e. path/to//resource would separate into path/to and
+		// /resource.  This will fix /resource to be resource.
+		while (requestString.startsWith("/")) {
+			requestString = requestString.substring(1);
+		}
 		provider.debug(logger, "servlet.resourcerequest", requestString);
+		resp.setStatus(500);
 		try {
 			ResourceRequest request = inj.getInstance(ResourceRequest.class); 
 			request.setRequest(basePath, requestString);
-			if(!handler.handleResourceRequest(request, resp)){
-				resp.setStatus(404);
+			if(handler.handleResourceRequest(request, resp)){
+				resp.setStatus(200);
 			}
 		} catch (Exception exc) {
-			//provider.error(logger, "servlet.cantserverequest",
-			//		       req.getRequestURI());
+			provider.error(logger, "servlet.cantserverequest",
+					       req.getRequestURI());
 			printer.print(exc);
 		}
 	}
