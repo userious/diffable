@@ -49,7 +49,7 @@ public class DiffableResourceHandler {
 	private Calendar jan2000 = Calendar.getInstance();
 	
 	public DiffableResourceHandler() {
-		// Set the 2010 calendar.
+		// Set the 2000 calendar.
 		jan2000.set(2000, 1, 1);
 	}
 	
@@ -60,7 +60,9 @@ public class DiffableResourceHandler {
 	 * @throws IOException if an IO exception occurs
 	 * @throws ResourceManagerException if a resource manager exception occurs
 	 */
-	public boolean handleResourceRequest(ResourceRequest request, HttpServletResponse resp) throws IOException, ResourceManagerException{
+	public boolean handleResourceRequest(
+		ResourceRequest request, 
+		HttpServletResponse resp) throws IOException, ResourceManagerException{
 		
 		boolean processed = false;
 		mgr.getResource(request);
@@ -88,7 +90,7 @@ public class DiffableResourceHandler {
 					request.getResourceHash(),
 					JSONHelper.quote(request.getResponse()),
 					request.getNewVersionHash(),
-					request.getBasePath() + "/");
+					request.getBasePath());
 				resp.setContentLength(response.length());
 				resp.getWriter().print(response);
 				processed = true;
