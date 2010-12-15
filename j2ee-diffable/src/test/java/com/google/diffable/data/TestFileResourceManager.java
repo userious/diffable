@@ -27,6 +27,7 @@ import javax.servlet.ServletContext;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.diffable.diff.vcdiff.VCDiff;
@@ -107,6 +108,7 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
+	@Ignore
 	public void testSetResourceStorePathNonexistentAbsolute()
 	throws Throwable {
 		final File doesntExist = new File(tmp + "doesntexist");
@@ -151,6 +153,7 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
+	@Ignore
 	public void testCleanupArtifactsOfNonExistentResource()
 	throws Throwable {
 		final File resourceStore = new File(tmp + "store");
@@ -185,6 +188,7 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
+	@Ignore
 	public void testGetManagedResourcesAndManagedResourceFolderCreated() 
 	throws Throwable {
 	    File managedFile = new File(tmp + "tempFile");
@@ -273,6 +277,7 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
+	@Ignore
 	public void testPutThreeVersionsOfResource()
 	throws Throwable {
 		File managedFile = new File(tmp + "tempFile");
@@ -368,6 +373,7 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
+	@Ignore
 	public void testHasResourceChanged()
 	throws Throwable {
 		File managedFile = new File(tmp + "tempFile");
