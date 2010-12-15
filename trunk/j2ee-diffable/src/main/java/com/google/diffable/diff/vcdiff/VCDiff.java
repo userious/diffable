@@ -23,13 +23,7 @@ import com.google.diffable.diff.vcdiff.hash.Hasher;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
-/**
- * This class defines the Differ which use the VCDiff algorithm.
- *  
- * @author joshua Harrison
- */
 public class VCDiff implements Differ {
-	
 	@Inject(optional=true) @Named("BlockSize")
 	public int blockSize = 20;
 	

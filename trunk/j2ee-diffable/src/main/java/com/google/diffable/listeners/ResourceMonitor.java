@@ -18,7 +18,6 @@ package com.google.diffable.listeners;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimerTask;
 
 import org.apache.log4j.Logger;
 
@@ -26,15 +25,9 @@ import com.google.diffable.config.MessageProvider;
 import com.google.diffable.data.ResourceManager;
 import com.google.diffable.exceptions.StackTracePrinter;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
-/**
- * This class defines the object, which will handle the monitoring of the resource defined in the
- * watched folders.
- *  
- * @author joshua Harrison
- */
-public class ResourceMonitor extends TimerTask {
-
+public class ResourceMonitor extends Thread {
 	@Inject
 	private StackTracePrinter printer;
 	
@@ -47,24 +40,50 @@ public class ResourceMonitor extends TimerTask {
 	private ArrayList<File> foldersToWatch = new ArrayList<File>();
 	private ResourceManager mgr;
 	
+	// The interval to wait between checking for changes in managed resources.
+	// It is interpreted in milliseconds.
+	@Inject(optional=true) @Named("ResourceMonitorInterval")
+	private int interval = 2000;
+	
+	private boolean process = true;
+	
 	public void setFolderAndManager(List<File> folders, ResourceManager mgr) {
 		foldersToWatch.addAll(folders);
 		this.mgr = mgr;
 	}
 	
 	/**
-	 * This TimerTask updates the resource manager when managed resources
-	 * change.  This is to prevent the servlet from having to wait on diffs to
-	 * be generated at request time.  
+	 * Sets the interval to wait between checking for changes in managed
+	 * resources.
+	 * 
+	 * @param interval The interval in milliseconds.
+	 */
+	public void setInterval(int interval) {
+		this.interval = interval;
+	}
+	
+	public void stopProcessing() {
+		this.process = false;
+	}
+	
+	/**
+	 * The main purpose of this thread is to update the resource manager when
+	 * managed resources change.  This is to prevent the servlet from having
+	 * to wait on diffs to be generated at request time.  The thread will look
+	 * for changes in managed resources at a configurable interval.  It defaults
+	 * to every 2 seconds.
 	 */
 	@Override
 	public void run() {
-		checkFolders();
-	}
-	
-	private void checkFolders() {
-		for (File folder : foldersToWatch) {
-			checkForChanges(folder);
+		while (this.process) {
+			for (File folder : foldersToWatch) {
+				checkForChanges(folder);
+			}
+			try {
+				Thread.sleep(this.interval);
+			} catch (InterruptedException exc) {
+				printer.print(exc);
+			}
 		}
 	}
 	

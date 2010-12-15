@@ -15,20 +15,7 @@
  */
 package com.google.diffable.exceptions;
 
-/**
- * This class defines the base class for the exception thrown in Diffable.
- * 
- * @author joshua Harrison
- */
 public class DiffableException extends Exception {
-	
-	/** The serial version UID */
-	private static final long serialVersionUID = -3815080956654747071L;
-
-	/**
-	 * Constructor
-	 * @param message the message
-	 */
 	public DiffableException(String message) {
 		super(message);
 	}

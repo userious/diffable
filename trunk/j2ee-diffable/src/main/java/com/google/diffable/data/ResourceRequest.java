@@ -18,6 +18,8 @@ package com.google.diffable.data;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.google.diffable.config.MessageProvider;
 import com.google.diffable.exceptions.DiffableException;
 import com.google.diffable.exceptions.StackTracePrinter;
@@ -32,16 +34,18 @@ import com.google.inject.Inject;
  * for deltas.  Places in the code where such assumptions are made will be
  * marked.
  * 
- * @author joshua Harrison
+ * @author joshua
  *
  */
 public class ResourceRequest {
-	
 	@Inject
 	private StackTracePrinter printer;
 	
 	@Inject
 	private MessageProvider provider;
+	
+	@Inject(optional=true)
+	private Logger logger = Logger.getLogger(ResourceRequest.class);
 	
 	// An enum representing the types of resources that can be managed and
 	// served by Diffable.
@@ -67,27 +71,19 @@ public class ResourceRequest {
 	private String oldVersion;
 	private String newVersion;
 	private String response;
-	private String basePath;
 	
 	/**
-	 * Initialize the request (stripped of servlet context)
-	 * and a list of resource folders where managed resources may exist.
-	 * @param basePath the basePath containing the application context path and the servlet path
+	 * The method gets passed the request (stripped of servlet context) and a
+	 * list of resource folders where managed resources may exist.
+	 * 
 	 * @param requested The requested resource. At this point, any servlet
 	 *     context information should be removed.  For instance, if the request
 	 *     was for http://localhost/SomeWebApp/diffable/aabbcc, then requested
 	 *     should only be 'aabbcc.'
 	 */
-	public void setRequest(String basePath, String requested)
+	public void setRequest(String requested)
 	throws DiffableException {
-
-		if(requested == null){
-			throw new DiffableException("Error creating resource request for '"+requested+"'.");
-		}
 		try {
-			
-			this.basePath = basePath;
-			
 			// The Javascript client must end all requests for diffs with
 			// '.diff'.
 			if (requested.endsWith(".diff")) {
@@ -113,7 +109,6 @@ public class ResourceRequest {
 				// aa.js.
 				this.resourceHash = requested;
 			}
-			// The printer and the provider are not available in the Constructor at that time
 		} catch (Exception exc) {
 			printer.print(exc);
 			DiffableException newExc = new DiffableException(
@@ -159,14 +154,6 @@ public class ResourceRequest {
 		this.newVersion = newVersion;
 	}
 	
-	/**
-	 * Returns the base path
-	 * @return the base path
-	 */
-	public String getBasePath() {
-		return basePath;
-	}
-
 	public String getResponse() {
 		return this.response;
 	}

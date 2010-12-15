@@ -24,7 +24,7 @@ import java.util.List;
  * Turns a string of text into blocks of text of size blockSize.  This class
  * is iterable over its blocks of text.
  * 
- * @author joshua Harrison
+ * @author joshua
  *
  */
 class BlockText implements Iterable<Block> {

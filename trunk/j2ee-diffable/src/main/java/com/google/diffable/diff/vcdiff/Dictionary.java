@@ -29,7 +29,7 @@ import com.google.diffable.diff.vcdiff.hash.Hasher;
  * also stores the text itself so that, given a finger print, it will
  * return the longest match from the original text.
  * 
- * @author joshua Harrison
+ * @author joshua
  *
  */
 class Dictionary {
@@ -46,7 +46,7 @@ class Dictionary {
 	 * handled, but only whether there is any matching text string, given
 	 * a finger print, in the original text.
 	 * 
-	 * @author joshua Harrison
+	 * @author joshua
 	 *
 	 */
 	private class DictionaryEntry {

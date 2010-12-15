@@ -20,7 +20,7 @@ package com.google.diffable.diff.vcdiff;
  * the block and the offset in the original text at which this block of text
  * begins.  It also contains a link to the next block.
  * 
- * @author joshua Harrison
+ * @author joshua
  *
  */
 class Block {
