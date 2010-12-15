@@ -59,7 +59,9 @@ public class DiffableResourceTag extends TagSupport {
 	@Override
 	public int doStartTag() throws JspException {
 		
-		DiffableContext ctx = (DiffableContext) pageContext.getServletContext().getAttribute(Constants.DIFFABLE_CONTEXT);
+		DiffableContext ctx = 
+			(DiffableContext) pageContext.getServletContext().getAttribute(
+				Constants.DIFFABLE_CONTEXT);
 		if(ctx == null){
 			throw new JspException("No diffable context defined!");
 		}

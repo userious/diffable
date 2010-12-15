@@ -578,8 +578,6 @@ public class FileResourceManager implements ResourceManager {
 		resourceFolder.setLastModified(resource.lastModified());
 		
 		return resourceContentsHash;
-		
-		
 	}
 	
 	/**
