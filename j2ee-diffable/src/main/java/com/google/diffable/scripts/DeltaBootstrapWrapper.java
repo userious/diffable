@@ -21,16 +21,9 @@ import org.apache.log4j.Logger;
 
 import com.google.diffable.config.MessageProvider;
 import com.google.diffable.exceptions.StackTracePrinter;
-import com.google.diffable.utils.IOUtils;
 import com.google.inject.Inject;
 
-/**
- * This class defines the wrapper for the Javascript delta bootstrap
- * 
- * @author joshua Harrison
- */
 public class DeltaBootstrapWrapper {
-	
 	@Inject
 	private StackTracePrinter printer;
 	
@@ -59,8 +52,6 @@ public class DeltaBootstrapWrapper {
 				logger, "bootstrap.resourceerror",
 	            "/com/google/diffable/scripts/DeltaBootstrap.js");
 			printer.print(exc);
-		}finally{
-			IOUtils.close(in);
 		}
 	}
 	

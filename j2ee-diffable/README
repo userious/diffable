@@ -9,7 +9,7 @@ that support Javascript.
 To build Diffable from source requires Apache Maven 2.1 or better:
 http://maven.apache.org/
 
-It also requires Java EE 1.4 or better:
+It also requires Java EE 6 or better:
 http://java.sun.com/javaee/downloads/index.jsp
 
 The following 3rd party libraries must exist on the classpath when building

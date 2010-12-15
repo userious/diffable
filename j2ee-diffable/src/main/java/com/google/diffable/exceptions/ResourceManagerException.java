@@ -15,15 +15,8 @@
  */
 package com.google.diffable.exceptions;
 
-/**
- * This class defines the exception thrown by the resource manager.
- * 
- * @author joshua Harrison
- */
 public class ResourceManagerException extends Exception {
-	
 	private static final long serialVersionUID = 1L;
-	
 	public ResourceManagerException(String message) {
 		super(message);
 	}

@@ -22,13 +22,7 @@ import org.apache.log4j.Logger;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
-/**
- * This class defines the message provider
- * 
- * @author joshua Harrison
- */
 public class MessageProvider {
-
 	@Inject(optional=true) @Named("MessageBundlePath")
 	private String bundlePath = "com/google/diffable/bundles/";
 	
@@ -47,7 +41,7 @@ public class MessageProvider {
 	public String getMessage(String propFile, String messageId, String...args) {
 		ResourceBundle bundle =
 			ResourceBundle.getBundle(bundlePath + propFile);
-		return String.format(bundle.getString(messageId), (Object[])args);
+		return String.format(bundle.getString(messageId), args);
 	}
 	
 	public String error(String messageId) {

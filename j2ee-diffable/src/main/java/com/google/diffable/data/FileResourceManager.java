@@ -19,12 +19,8 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -36,14 +32,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.servlet.ServletContext;
+
 import org.apache.log4j.Logger;
 
-import com.google.diffable.Constants;
 import com.google.diffable.config.MessageProvider;
 import com.google.diffable.diff.Differ;
 import com.google.diffable.diff.JSONHelper;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
+import com.google.diffable.tags.DiffableResourceTag;
 import com.google.diffable.utils.IOUtils;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -58,7 +56,6 @@ import com.google.inject.name.Named;
  */
 @Singleton
 public class FileResourceManager implements ResourceManager {
-	
 	@Inject
 	private StackTracePrinter printer;
 	
@@ -68,52 +65,44 @@ public class FileResourceManager implements ResourceManager {
 	@Inject(optional=true)
 	private Logger logger = Logger.getLogger(FileResourceManager.class);
 	
-	/** 
-	 * This property dictates whether the string data for the latest version of
-	 * a given resource is stored in memory or read from disk.
-	 */
+	// This property dictates whether the string data for the latest version of
+	// a given resource is stored in memory or read from disk.
 	@Inject(optional=true) @Named(value="KeepResourcesInMemory")
 	private boolean keepResourcesInMemory = true;
-	
-	/** The map of resource content */
 	private Map<File, String> resourceContents = new HashMap<File, String>();
 	
-	/** Used to reference managed resources by their path hash. */
+	// Used to reference managed resources by their path hash.
 	private Map<String, File> hashsToResources = new HashMap<String, File>();
 	
-	/** The resource store path is provided by the DiffableConfigProperties file. */
+	// Used to store the most current version of a given managed resource.
+	private Map<File, String> currentVersions = new HashMap<File, String>();
+	
+	// The resource store path is provided by the DiffableConfigProperties
+	// file.
 	@Inject(optional=true) @Named(value="ResourceStorePath")
 	private String resourceStorePath = null;
 	
-	/** The resource store */
 	private File resourceStore = null;
 	
-	/** The diffable context */
-	private DiffableContext diffableCtx;
+	private ServletContext ctx;
 	
-	/** The differ */
 	private Differ differ = null;
 
-	/**
-	 * If the manifest is null, the resource manager cannot be used, and
-	 * Diffable will not host any resources.
-	 */
+	// If the manifest is null, the resource manager cannot be used, and
+	// Diffable will not host any resources.
 	private Properties manifest = null;
 	
-	/** A map relating managed resources to their corresponding resource folders. */
+	// A map relating managed resources to their corresponding resource folders.
 	private Map<File, File> managedResouceFolders = new HashMap<File, File>();
 	
 	/**
 	 * A private inner class used for filtering the contents of a managed
 	 * resource folder.  It collects the versions of a managed resource not
 	 * including the latest version and deletes deltas as it goes.
-	 * @author joshua Harrison
+	 * @author joshua
 	 *
 	 */
 	private class VersionFilter implements FileFilter {
-		
-		private static final String VERSION_FILE_EXTENSION = "version";
-		
 		private String currentHash = null;
 		private File currentFile = null;
 		
@@ -128,7 +117,7 @@ public class FileResourceManager implements ResourceManager {
 		@Override
 		public boolean accept(File current) {
 			String extension = current.getName().split("\\.")[1];
-			if (extension.equals(VERSION_FILE_EXTENSION)) {
+			if (extension.equals("version")) {
 				// Return false for the current version.
 				if (current.getAbsolutePath().contains(this.currentHash)) {
 					this.currentFile = current;
@@ -176,7 +165,9 @@ public class FileResourceManager implements ResourceManager {
 					request.getOldVersionHash() + "_" +
 					request.getNewVersionHash() + ".diff");
 				if (diff.exists()) {
-					request.setResponse(readFileContents(diff));
+					StringBuffer contents = new StringBuffer();
+					readFileContents(diff, contents);
+					request.setResponse(contents.toString());
 				} else {
 					// If the diff being requested cannot be located, then the
 					// response should be set to the whole string of the latest
@@ -189,10 +180,11 @@ public class FileResourceManager implements ResourceManager {
 							JSONHelper.quote(resourceContents.get(resource)) +
 							"]");
 					} else {
-						String contents = readFileContents(resource);
+						StringBuffer contents = new StringBuffer();
+						readFileContents(resource, contents);
 						request.setResponse(
 							"[" +
-							JSONHelper.quote(contents) +
+							JSONHelper.quote(contents.toString()) +
 							"]");
 					}
 				}
@@ -200,9 +192,11 @@ public class FileResourceManager implements ResourceManager {
 				if (keepResourcesInMemory) {
 					request.setResponse(resourceContents.get(resource));
 				} else {
-					request.setResponse(readFileContents(resource));
+					StringBuffer contents = new StringBuffer();
+					readFileContents(resource, contents);
+					request.setResponse(contents.toString());
 				}
-				request.setNewVersionHash(diffableCtx.getCurrentVersion(resource));
+				request.setNewVersionHash(currentVersions.get(resource));
 			}
 		}
 	}
@@ -210,10 +204,6 @@ public class FileResourceManager implements ResourceManager {
 	@Override
 	public boolean hasResourceChanged(File resource)
 			throws ResourceManagerException {
-		
-		// To know if a resource has change, we save the last modified date of the resource in corresponding
-		// resource folder, so we will be able to check if the resource has change by comparing the last modified date
-		// of the resource and the last modified date of the resource folder
 		if (isManaged(resource)) {
 			if (managedResouceFolders.containsKey(resource) && (
 				resource.lastModified() ==
@@ -266,9 +256,10 @@ public class FileResourceManager implements ResourceManager {
 					provider.info(logger, "filemgr.gendeltas",
 						      	  resource.getAbsolutePath());
 					generateDeltas(resource, latestHash);
-					// Update the Diffable context so it can correctly identify
+					// Update the Diffable tag so it can correctly identify
 					// the most recent version of this resource.
-					diffableCtx.setCurrentVersion(resource, latestHash);
+					DiffableResourceTag.setCurrentVersion(resource, latestHash);
+					currentVersions.put(resource, latestHash);
 				}
 			} catch (Exception exc) {
 				printer.print(exc);
@@ -285,29 +276,20 @@ public class FileResourceManager implements ResourceManager {
 	}
 
 	@Override
-	public ResourceManager initialize(String baseDir, DiffableContext ctx)
+	public ResourceManager initialize()
 	throws ResourceManagerException {
-		
-		diffableCtx = ctx;
-		String webAppBaseDir = baseDir;
-		if(!webAppBaseDir.endsWith(File.separator)){
-			webAppBaseDir += File.separator;
-		}
 		// If the resource store path is not defined, it defaults to ".diffable"
 		// relative to the web app folder.  If the path starts with a slash, it
 		// is interpreted as absolute.  Otherwise, it is interpreted relative to
 		// the web app folder.
 		ArrayList<String> paths = new ArrayList<String>();
-		paths.add(webAppBaseDir + ".diffable"); 
+		String currentPath = ctx.getRealPath("/");
+		paths.add(currentPath + ".diffable"); 
 		if (resourceStorePath != null) {
-			
-			if(resourceStorePath.startsWith(Constants.FILE_URI_SCHEME_PREFIX)){
-				resourceStorePath = resourceStorePath.substring(Constants.FILE_URI_SCHEME_PREFIX.length());
-			}else{
-				resourceStorePath =
-					webAppBaseDir + resourceStorePath;
-			}
-			
+			resourceStorePath =
+				resourceStorePath.startsWith("/") ?
+					resourceStorePath :
+					currentPath + resourceStorePath;
 			paths.add(0, resourceStorePath);
 		}
 		// Check to make sure the path resolves to a valid folder on the
@@ -340,6 +322,11 @@ public class FileResourceManager implements ResourceManager {
 		}
 	}
 	
+	@Override
+	public void setServletContext(ServletContext ctx) {
+		this.ctx = ctx;
+	}
+
 	/**
 	 * The FileResourceManager uses a manifest file to persist information
 	 * about the resources it is managing.  The file keeps track of which file
@@ -380,6 +367,7 @@ public class FileResourceManager implements ResourceManager {
 				// be the hash of that file path.
 				for (Object key : keys) {
 					String path = key.toString();
+					String hash = manifest.getProperty(path);
 					
 					// Check to make sure the file still exists.  If it doesn't
 					// clean up all remaining resources and remove the entry.
@@ -398,9 +386,11 @@ public class FileResourceManager implements ResourceManager {
 						// tag on start up.
 						String latestHash =
 							readInAndCopyLatestVersion(managedResource, true);
-						// Update the Diffable context so it can correctly identify
+						// Update the Diffable tag so it can correctly identify
 						// the most recent version of this resource.
-						diffableCtx.setCurrentVersion(managedResource, latestHash);
+						DiffableResourceTag.setCurrentVersion(managedResource,
+								                              latestHash);
+						currentVersions.put(managedResource, latestHash);
 					}
 				}
 				out = new FileOutputStream(manifestFile);
@@ -430,6 +420,7 @@ public class FileResourceManager implements ResourceManager {
 		// Create a file filter that only returns old versions of a managed
 		// resource.  It also deletes deprecated diffs as it's going.
 		VersionFilter filter = new VersionFilter(latestHash);
+		FileOutputStream out = null;
 		try {
 			String hash = hashResourcePath(resource);
 			File resourceFolder = getManagedResourceFolder(resource, hash);
@@ -440,13 +431,16 @@ public class FileResourceManager implements ResourceManager {
 			if (keepResourcesInMemory) {
 		        currentContent = this.resourceContents.get(resource);
 			} else {
-				currentContent = readFileContents(currentVersion);
+				StringBuffer contentBuffer = new StringBuffer();
+				readFileContents(currentVersion, contentBuffer);
+				currentContent = contentBuffer.toString();
 			}
             if (currentContent != null && oldVersions != null) {
             	// For each of the old versions, get the content and generate a
             	// diff between the old version and the newest version.
 				for (File version : oldVersions) {
-					String oldContent = readFileContents(version);
+					StringBuffer oldContent = new StringBuffer();
+					readFileContents(version, oldContent);
 					String diff =
 						differ.getDiffAsString(oldContent.toString(),
 								               currentContent);
@@ -458,27 +452,17 @@ public class FileResourceManager implements ResourceManager {
 							       newDelta.getAbsolutePath(),
 							       resource.getAbsolutePath());
 					newDelta.createNewFile();
-					FileOutputStream out = null;
-					try{
-						out = new FileOutputStream(newDelta);
-						out.write(diff.getBytes());
-					}
-					finally{
-						IOUtils.close(out);
-					}
+					out = new FileOutputStream(newDelta);
+					out.write(diff.getBytes());
 				}
             }
-            
-            // Ensure that the resource folder last modified date match with the resource last modified date
-            resourceFolder.setLastModified(resource.lastModified());
-    		
 		} catch (Exception exc) {
 			provider.error(logger, "filemgr.deltaerror",
 					       resource.getAbsolutePath(), latestHash);
 			printer.print(exc);
+		}finally{
+			IOUtils.close(out);
 		}
-		
-		
 	}
 	
 	/**
@@ -512,19 +496,18 @@ public class FileResourceManager implements ResourceManager {
 		// and copy over the most recent version.
 		} else {
 			resourceFolder.mkdir();
-			// Ensure that the resourceFolder last modified date match with the resource last modified date
 			resourceFolder.setLastModified(resource.lastModified());
-			
 			this.managedResouceFolders.put(resource, resourceFolder);
 			manifestPutAndSave(resource.getAbsolutePath(), resourceNameHash);
 			
 			String latestHash = readInAndCopyLatestVersion(resource, false);
-			// Update the Diffable context so it can correctly identify
+			// Update the Diffable tag so it can correctly identify
 			// the most recent version of this resource.
-			diffableCtx.setCurrentVersion(resource, latestHash);
+			DiffableResourceTag.setCurrentVersion(resource, latestHash);
+			currentVersions.put(resource, latestHash);
 		}
 	}
-
+	
 	/**
 	 * Utility method for getting the contents of a managed resource and copying
 	 * the current version of that resource into the corresponding managed
@@ -541,12 +524,12 @@ public class FileResourceManager implements ResourceManager {
 	private String readInAndCopyLatestVersion(File resource, boolean force)
 	throws Exception {
 		String hash = hashResourcePath(resource);
-		StringBuilder resourceContents = new StringBuilder();
+		StringBuffer resourceContents = new StringBuffer();
 		String resourceContentsHash =
-			readAndGetChecksum(resource, resourceContents);
+			readFileContents(resource, resourceContents);
 		
 		File resourceFolder = getManagedResourceFolder(resource, hash);
-
+		resourceFolder.setLastModified(resource.lastModified());
 		File version =
 			new File(resourceFolder.getAbsolutePath() + File.separator +
 					 resourceContentsHash + ".version");
@@ -569,17 +552,10 @@ public class FileResourceManager implements ResourceManager {
 				this.resourceContents.put(
 					resource, resourceContents.toString());
 			}
-			
+			return resourceContentsHash;
 		} else {
-			resourceContentsHash = null;
+			return null;
 		}
-		
-		// Ensure that the resourceFolder last modified date match with the resource last modified date
-		resourceFolder.setLastModified(resource.lastModified());
-		
-		return resourceContentsHash;
-		
-		
 	}
 	
 	/**
@@ -610,48 +586,24 @@ public class FileResourceManager implements ResourceManager {
 	}
 	
 	/**
-	 * Reads and the contents of a file.
-	 * 
-	 * @param toRead The file to read.
-	 *
-	 * @return the file content 
-	 */
-	private String readFileContents(File toRead) {
-		try {
-			Reader rd = new FileReader(toRead);
-			StringWriter sw = new StringWriter();
-			IOUtils.copy(rd, sw, true);			
-			return sw.toString();
-		} catch (IOException exc) {
-			provider.error(
-				logger, "filemgr.readerror", toRead.getAbsolutePath());
-			printer.print(exc);
-		}
-		return null;
-	}
-	
-	/**
 	 * Reads the contents of a file into the passed in StringBuffer and returns
 	 * the checksum of the file.
 	 * 
 	 * @param toRead The file to read.
-	 * @param fileContent A StringBuilder used to hold the contents of the file
+	 * @param fileContent A StringBuffer used to hold the contents of the file
 	 *     being read.
 	 * @return A hex representation of the md5 checksum of the file's contents. 
 	 */
-	private String readAndGetChecksum(File toRead, StringBuilder fileContent) {
+	private String readFileContents(File toRead, StringBuffer fileContent) {
 		InputStream in = null; 
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			in = new FileInputStream(toRead);
 			in = new DigestInputStream(in, md);
-			Reader rd = new InputStreamReader(in);
-			char[] buf = new char[IOUtils.BUFFER_SIZE];
-			int num = 0;
-			while ((num = rd.read(buf, 0, buf.length)) != -1) {
-				fileContent.append(buf, 0, num);
+			int ch;
+			while ((ch = in.read()) != -1) {
+				fileContent.append((char)ch);
 			}
-			
 			return new BigInteger(1, md.digest()).toString(16);
 		} catch (NoSuchAlgorithmException exc) {
 			provider.error(
@@ -710,7 +662,8 @@ public class FileResourceManager implements ResourceManager {
 	 *     are stored.
 	 */
 	private File getManagedResourceFolder(File resource, String hash) {
-		return new File(this.resourceStore, hash);
+		return new File(this.resourceStore.getAbsolutePath() + File.separator +
+				        hash);
 	}
 
 	/**
@@ -722,7 +675,8 @@ public class FileResourceManager implements ResourceManager {
 	 */
 	private void manifestPutAndSave(String key, String value) {
 		manifest.put(key, value);
-		File manifestFile = new File(this.resourceStore , "diffable.manifest");
+		File manifestFile = new File(this.resourceStore + File.separator +
+		                             "diffable.manifest");
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(manifestFile);
