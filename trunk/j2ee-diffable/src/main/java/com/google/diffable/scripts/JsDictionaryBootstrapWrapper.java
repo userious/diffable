@@ -21,9 +21,15 @@ import org.apache.log4j.Logger;
 
 import com.google.diffable.config.MessageProvider;
 import com.google.diffable.exceptions.StackTracePrinter;
+import com.google.diffable.utils.IOUtils;
 import com.google.inject.Inject;
 
+/**
+ * This class defines the JS dictionary bootstrap wrapper
+ * @author joshua Harrison
+ */
 public class JsDictionaryBootstrapWrapper {
+	
 	@Inject
 	private StackTracePrinter printer;
 	
@@ -52,6 +58,8 @@ public class JsDictionaryBootstrapWrapper {
 				logger, "bootstrap.resourceerror",
 	            "/com/google/diffable/scripts/JsDictionaryBootstrap.js");
 			printer.print(exc);
+		}finally{
+			IOUtils.close(in);
 		}
 	}
 	

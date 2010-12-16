@@ -28,12 +28,13 @@ import com.google.inject.name.Names;
  * module constructor, they are used to override the default implementations
  * with those specified in the file.
  * 
- * @author joshua
+ * @author joshua Harrison
  *
  */
 public class BaseModule extends AbstractModule {
-	private Properties props;
+	
 	private Logger logger = Logger.getLogger(BaseModule.class);
+	private Properties props;
 	private MessageProvider provider = new MessageProvider();
 	
 	public BaseModule() {
@@ -66,6 +67,7 @@ public class BaseModule extends AbstractModule {
 	 * and attempts to bind the corresponding value as the implementation class
 	 * for the given interface.
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void bindImplementationOverrides() {
 		Enumeration<?> names = props.propertyNames();
 		while (names.hasMoreElements()) {

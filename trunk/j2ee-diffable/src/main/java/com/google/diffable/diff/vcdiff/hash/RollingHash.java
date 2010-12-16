@@ -18,7 +18,13 @@ package com.google.diffable.diff.vcdiff.hash;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+/**
+ * This class defines the Rolling hash algroithm.
+ * 
+ * @author joshua Harrison
+ */
 class RollingHash extends Hasher {
+
 	@Inject(optional=true) @Named("PrimeBase")
 	private int primeBase = 257;
 	

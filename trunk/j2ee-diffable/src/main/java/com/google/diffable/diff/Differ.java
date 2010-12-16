@@ -22,9 +22,10 @@ import com.google.inject.ImplementedBy;
  * The Differ interface is used to create deltas between versions of managed
  * resources.
  * 
- * @author joshua
+ * @author joshua Harrison
  */
 @ImplementedBy(VCDiff.class)
 public interface Differ {
+	
 	String getDiffAsString(String dict, String target);
 }
