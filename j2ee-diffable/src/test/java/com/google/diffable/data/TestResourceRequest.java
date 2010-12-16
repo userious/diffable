@@ -1,8 +1,10 @@
 package com.google.diffable.data;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,7 +41,7 @@ public class TestResourceRequest {
 	public void testNonDiffRequest() 
 	throws Throwable {
 		ResourceRequest request = inj.getInstance(ResourceRequest.class); 
-		request.setRequest("abcd");
+		request.setRequest(null, "abcd");
 		assertFalse(request.isDiff());
 		assertEquals("abcd", request.getResourceHash());
 		assertNull(request.getNewVersionHash());
@@ -50,7 +52,7 @@ public class TestResourceRequest {
 	public void testDiffRequest()
 	throws Throwable {
 		ResourceRequest request = inj.getInstance(ResourceRequest.class);
-		request.setRequest("abcd_defg_ghij.diff");
+		request.setRequest(null, "abcd_defg_ghij.diff");
 		assertTrue(request.isDiff());
 		assertEquals("abcd", request.getResourceHash());
 		assertEquals("defg", request.getOldVersionHash());
@@ -61,7 +63,7 @@ public class TestResourceRequest {
 	public void testDiffThrowsException()
 	throws Throwable {
 		ResourceRequest request = inj.getInstance(ResourceRequest.class);
-		request.setRequest("abcd_defg.diff");
+		request.setRequest(null, "abcd_defg.diff");
 	}
 	
 	@Test

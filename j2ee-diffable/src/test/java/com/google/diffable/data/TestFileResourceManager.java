@@ -15,6 +15,11 @@
  */
 package com.google.diffable.data;
 
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -22,12 +27,9 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.Properties;
 
-import javax.servlet.ServletContext;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.diffable.diff.vcdiff.VCDiff;
@@ -39,20 +41,26 @@ import com.google.inject.Injector;
 import com.google.inject.Provider;
 import com.google.inject.name.Names;
 
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.*;
-
 public class TestFileResourceManager {
 	private Logger logger = createMock(Logger.class);
-	private ServletContext ctx = createMock(ServletContext.class);
 	private File tempDir;
 	private String tmp;
 	private FileResourceManager mgr;
 	private Injector inj;
+	private String fileSeparator = File.separator;
+	private DiffableContext diffableCtx;
 	
 	@Before
 	public void setUp() throws Throwable {
-		tempDir = new File("./temp");
+		
+		String userDir = System.getProperty("user.dir");
+		tempDir = new File(userDir, "temp");
+		
+		// Clean dir
+		if(tempDir.exists()){
+			deleteDir(tempDir);
+		}
+		
 		tempDir.mkdir();
 		tmp = tempDir.getAbsolutePath() + File.separator;
 		inj = Guice.createInjector(new AbstractModule() {
@@ -77,14 +85,11 @@ public class TestFileResourceManager {
 			}
 		});
 		mgr = inj.getInstance(FileResourceManager.class);
-		expect(ctx.getRealPath("/")).andReturn(tmp);
-		replay(ctx);
-		mgr.setServletContext(ctx);
+		diffableCtx = new DiffableContext();
 	}
 	
 	@After
 	public void tearDown() {
-		verify(ctx);
 		deleteDir(tempDir);
 	}
 	
@@ -108,7 +113,6 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
-	@Ignore
 	public void testSetResourceStorePathNonexistentAbsolute()
 	throws Throwable {
 		final File doesntExist = new File(tmp + "doesntexist");
@@ -120,10 +124,10 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						doesntExist.getAbsolutePath());
+							"file://"+doesntExist.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
 
 		assertTrue(manifest.exists());
 		assertTrue(doesntExist.exists());
@@ -143,17 +147,16 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						doesntExist.getAbsolutePath());
+						"file://"+doesntExist.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
 
 		assertTrue(diffable.exists());
 		assertTrue(diffableManifest.exists());
 	}
 	
 	@Test
-	@Ignore
 	public void testCleanupArtifactsOfNonExistentResource()
 	throws Throwable {
 		final File resourceStore = new File(tmp + "store");
@@ -162,7 +165,7 @@ public class TestFileResourceManager {
 			new File(resourceStore.getAbsolutePath() + "/diffable.manifest");
 		manifest.createNewFile();
 		Properties manifestProps = new Properties();
-		manifestProps.put("/resource/doesnt/exist", "fakehash");
+		manifestProps.put(tmp+"resource"+fileSeparator+"doesnt"+fileSeparator+"exist", "fakehash");
 		manifestProps.store(new FileOutputStream(manifest), null);
 		
 		File resourceFolder =
@@ -177,10 +180,10 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+						"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
 		assertFalse(resourceFolder.exists());
 		manifestProps = new Properties();
 		manifestProps.load(new FileInputStream(manifest));
@@ -188,7 +191,6 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
-	@Ignore
 	public void testGetManagedResourcesAndManagedResourceFolderCreated() 
 	throws Throwable {
 	    File managedFile = new File(tmp + "tempFile");
@@ -206,10 +208,41 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+							"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
+		assertEquals(1, mgr.getManagedResources().size());
+		assertEquals(managedFile, mgr.getManagedResources().get(0));
+		assertTrue(new File(
+			resourceStore.getAbsolutePath() + "/fakehash").exists());
+		assertEquals(new File(
+			resourceStore.getAbsolutePath() + "/fakehash").lastModified(),
+			managedFile.lastModified());
+	}
+	
+	@Test
+	public void testGetManagedResourcesAndManagedResourceFolderCreatedWithRelativeStore() 
+	throws Throwable {
+	    File managedFile = new File(tmp + "tempFile");
+	    managedFile.createNewFile();
+		final File resourceStore = new File(tmp + "store");
+		resourceStore.mkdir();
+		File manifest =
+			new File(resourceStore.getAbsolutePath() + "/diffable.manifest");
+		manifest.createNewFile();
+		Properties manifestProps = new Properties();
+		manifestProps.put(managedFile.getAbsolutePath(), "fakehash");
+		manifestProps.store(new FileOutputStream(manifest), null);
+		inj.createChildInjector(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bindConstant().annotatedWith(
+					Names.named("ResourceStorePath")).to(
+							"store"); // Use relative path
+			}
+		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
+		mgr.initialize(tmp, diffableCtx);
 		assertEquals(1, mgr.getManagedResources().size());
 		assertEquals(managedFile, mgr.getManagedResources().get(0));
 		assertTrue(new File(
@@ -232,10 +265,10 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+							"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
 		assertFalse(mgr.isManaged(new File("fake/file/path")));
 	}
 	
@@ -247,7 +280,7 @@ public class TestFileResourceManager {
 	    FileOutputStream out = new FileOutputStream(managedFile);
 	    out.write("Hello World!".getBytes());
 	    out.close();
-	    mgr.initialize();
+	    mgr.initialize(tmp, diffableCtx);
 	    
 	    File store = new File(tmp + ".diffable");
 	    assertTrue(store.exists());
@@ -277,7 +310,6 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
-	@Ignore
 	public void testPutThreeVersionsOfResource()
 	throws Throwable {
 		File managedFile = new File(tmp + "tempFile");
@@ -285,7 +317,7 @@ public class TestFileResourceManager {
 	    FileOutputStream out = new FileOutputStream(managedFile);
 	    out.write("Hello World!".getBytes());
 	    out.close();
-	    mgr.initialize();
+	    mgr.initialize(tmp, diffableCtx);
 	    
 	    File store = new File(tmp + ".diffable");
 	    assertTrue(store.exists());
@@ -352,7 +384,7 @@ public class TestFileResourceManager {
 	    FileOutputStream out = new FileOutputStream(managedFile);
 	    out.write("Hello World!".getBytes());
 	    out.close();
-	    mgr.initialize();
+	    mgr.initialize(tmp, diffableCtx);
 	    
 	    // Delete the resource before adding it to confirm that attempting to
 	    // delete an unmanaged resource doesn't throw an error.
@@ -373,7 +405,6 @@ public class TestFileResourceManager {
 	}
 	
 	@Test
-	@Ignore
 	public void testHasResourceChanged()
 	throws Throwable {
 		File managedFile = new File(tmp + "tempFile");
@@ -394,10 +425,10 @@ public class TestFileResourceManager {
 			protected void configure() {
 				bindConstant().annotatedWith(
 					Names.named("ResourceStorePath")).to(
-						resourceStore.getAbsolutePath());
+							"file://"+resourceStore.getAbsolutePath());
 			}
 		}).getMembersInjector(FileResourceManager.class).injectMembers(mgr);
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
 		assertFalse(mgr.hasResourceChanged(managedFile));
 		managedResourceFolder.setLastModified(0);
 		assertTrue(mgr.hasResourceChanged(managedFile));
@@ -408,7 +439,7 @@ public class TestFileResourceManager {
 	throws Throwable {
 		File managedFile = new File(tmp + "tempFile");
 	    managedFile.createNewFile();
-		mgr.initialize();
+		mgr.initialize(tmp, diffableCtx);
 		mgr.hasResourceChanged(managedFile);
 	}
 	
@@ -416,7 +447,7 @@ public class TestFileResourceManager {
 	public void testGetNonManagedResource()
 	throws Throwable {
 		// Simply confirms that a bogus ResourceRequest won't cause a crash.
-	    mgr.initialize();
+	    mgr.initialize(tmp, diffableCtx);
 	    ResourceRequest req = inj.getInstance(ResourceRequest.class);
 	    req.setResourceHash("aaa");
 	    mgr.getResource(req);
@@ -439,13 +470,13 @@ public class TestFileResourceManager {
 	    FileOutputStream out = new FileOutputStream(managedFile);
 	    out.write("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".getBytes());
 	    out.close();
-	    mgr.initialize();
+	    mgr.initialize(tmp, diffableCtx);
 	    mgr.putResource(managedFile);
 	    
 	    String resourceHash = hashString(managedFile.getAbsolutePath());
 	    
 	    ResourceRequest req = new ResourceRequest();
-	    req.setRequest(resourceHash);
+	    req.setRequest(null, resourceHash);
 	    mgr.getResource(req);
 	    assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.getResponse());
 	    
@@ -455,15 +486,15 @@ public class TestFileResourceManager {
 	    out.close();
 	    mgr.putResource(managedFile);
 	    req = new ResourceRequest();
-	    req.setRequest(resourceHash);
+	    req.setRequest(null, resourceHash);
 	    mgr.getResource(req);
 	    assertEquals("bbbbbbbbbbbbbbbaaaaaaaaaaaaaaa", req.getResponse());
 	    
 	    String oldVersion = hashString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 	    String newVersion = hashString("bbbbbbbbbbbbbbbaaaaaaaaaaaaaaa");
 	    req = new ResourceRequest();
-	    req.setRequest(resourceHash + "_" + oldVersion + "_" +
-	    			   newVersion + ".diff");
+	    req.setRequest(null, resourceHash + "_" + oldVersion + "_" +
+								   newVersion + ".diff");
 	    mgr.getResource(req);
 	    assertEquals("[\"bbbbbbbbbbbbbbb\",0,15,]", req.getResponse());
 	}
@@ -476,14 +507,14 @@ public class TestFileResourceManager {
 	    FileOutputStream out = new FileOutputStream(managedFile);
 	    out.write("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".getBytes());
 	    out.close();
-	    mgr.initialize();
+	    mgr.initialize(tmp, diffableCtx);
 	    mgr.putResource(managedFile);
 	    
 	    String resourceHash = hashString(managedFile.getAbsolutePath());
 	    
 	    ResourceRequest req = new ResourceRequest();
 	    String hash = resourceHash + (isDiff ? "_aa_bb.diff" : "");
-	    req.setRequest(hash);
+	    req.setRequest(null, hash);
 	    mgr.getResource(req);
 	    return req;
 	}

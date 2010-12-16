@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.Timer;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -26,16 +27,18 @@ import javax.servlet.ServletContextListener;
 
 import org.apache.log4j.Logger;
 
+import com.google.diffable.Constants;
 import com.google.diffable.config.BaseModule;
 import com.google.diffable.config.MessageProvider;
+import com.google.diffable.data.DiffableContext;
 import com.google.diffable.data.ResourceManager;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.diffable.exceptions.StackTracePrinter;
-import com.google.diffable.tags.DiffableResourceTag;
 import com.google.diffable.utils.IOUtils;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.google.inject.name.Named;
 
 /**
  * The servlet context listener which handle the lifecycle of the resource monitor and the Guice injector 
@@ -44,6 +47,7 @@ import com.google.inject.Injector;
  * @author Joshua Harrison
  */
 public class DiffableListener implements ServletContextListener {
+	
 	@Inject(optional=true)
 	private StackTracePrinter printer;
 	
@@ -56,19 +60,22 @@ public class DiffableListener implements ServletContextListener {
 	@Inject(optional=true)
 	private MessageProvider provider;
 	
+	@Inject(optional=true)
+	private ResourceMonitor monitor;
+	
+	// The interval to wait between checking for changes in managed resources.
+	// It is interpreted in milliseconds.
+	@Inject(optional=true) @Named("ResourceMonitorInterval")
+	private int interval = 2000;
+	
 	private BaseModule baseModule = null;
 	
 	private Injector inj = null;
 	
-	private ResourceMonitor monitor;
+	private Timer timer = new Timer("folderMonitor", true);
 	
 	public void contextDestroyed(ServletContextEvent ctxEvent) {
-		this.monitor.stopProcessing();
-		try {
-			this.monitor.join();
-		} catch (InterruptedException exc) {
-			printer.print(exc);
-		}
+		timer.cancel();
 	}
 	
 	public void contextInitialized(ServletContextEvent ctxEvent) {
@@ -79,7 +86,14 @@ public class DiffableListener implements ServletContextListener {
 		inj = initializeInjectedProperties(ctx, baseModule);
 		
 		// Save the injector for later use by Diffable.
-		ctx.setAttribute("DiffableGuiceInjector", inj);
+		ctx.setAttribute(Constants.DIFFABLE_GUICE_INJECTOR, inj);
+		
+		// Inject members into the listener via Guice.
+		inj.getMembersInjector(DiffableListener.class).injectMembers(this);
+		
+		// Initialize the diffable context 
+		DiffableContext diffableCtx = new DiffableContext();
+		ctx.setAttribute(Constants.DIFFABLE_CONTEXT, diffableCtx);
 		
 		// Initialize the resource manager. For testing, the DiffableListener
 		// is retrieved via Guice with a mock ResourceManager injected already,
@@ -87,16 +101,11 @@ public class DiffableListener implements ServletContextListener {
 		if (mgr == null) {
 			mgr = inj.getInstance(ResourceManager.class);
 		}
-		mgr.setServletContext(ctx);
 		
-		// By retrieving the message provider via the injector, the message
-		// bundles path can be overridden.
-		provider = inj.getInstance(MessageProvider.class);
-		printer = inj.getInstance(StackTracePrinter.class);
-		
-		// Initialize the resource manager and store it in the servlet context.
+		// Initialize the resource.
 		try {
-			ctx.setAttribute("ResourceManager", mgr.initialize());
+			String webAppBaseDir = ctx.getRealPath("/");
+			mgr.initialize(webAppBaseDir, diffableCtx);
 		} catch (ResourceManagerException exc) {
 			provider.error(logger, "resourcestore.problem");
 			printer.print(exc);
@@ -111,6 +120,7 @@ public class DiffableListener implements ServletContextListener {
 		String currentPath = ctx.getRealPath("");
 		String resourceFolders = ctx.getInitParameter("ResourceFolders");
 		ArrayList<File> foundFolders = new ArrayList<File>();
+		
 		if (resourceFolders == null) {
 			String error =
 				provider.getMessage(
@@ -133,13 +143,12 @@ public class DiffableListener implements ServletContextListener {
 				}
 			}
 			// Set the folders on the DiffableTag so it can locate resources.
-			DiffableResourceTag.setFolder(foundFolders);
+			//DiffableResourceTag.setFolder(foundFolders);
+			diffableCtx.setFolder(foundFolders);
 			
 			// Start up the monitoring thread.
-			monitor = inj.getInstance(ResourceMonitor.class);
 			monitor.setFolderAndManager(foundFolders, mgr);
-			monitor.setDaemon(true);
-			monitor.start();
+			timer.schedule(monitor, 0, interval);
 		}
 		
 		// Get the servlet prefix initialization parameter.  This is mandatory
@@ -147,10 +156,11 @@ public class DiffableListener implements ServletContextListener {
 		// thrown if this parameter is not defined.
 		String servletPrefix = ctx.getInitParameter("ServletPrefix");
 		if (servletPrefix != null) {
-			DiffableResourceTag.setServletPrefix(servletPrefix);
+			diffableCtx.setServletPrefix(servletPrefix);
 		} else {
 			provider.error(logger, "servlet.noservletprefix");
 		}
+		
 	}
 	
 	/**

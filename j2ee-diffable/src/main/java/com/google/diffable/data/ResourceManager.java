@@ -18,8 +18,6 @@ package com.google.diffable.data;
 import java.io.File;
 import java.util.List;
 
-import javax.servlet.ServletContext;
-
 import com.google.diffable.diff.Differ;
 import com.google.diffable.exceptions.ResourceManagerException;
 import com.google.inject.ImplementedBy;
@@ -28,6 +26,8 @@ import com.google.inject.ImplementedBy;
  * A ResourceManager is responsible for versioning and hosting Diffable
  * resources.  It is also responsible for serving deltas between managed
  * resources.
+ * 
+ * @author joshua Harrison
  */
 @ImplementedBy(FileResourceManager.class)
 public interface ResourceManager {
@@ -36,11 +36,14 @@ public interface ResourceManager {
 	 * An initialization function for the resource manager.  This is called
 	 * before the resource manager is used.
 	 * 
+	 * @param baseDir the webapp base directory
+	 * @param ctx the diffable context
+	 * 
 	 * @return Returns the ResourceManager instance on successful creation of
 	 *     the resource store. If this operation fails for any reason, the
 	 *     operation should throw a ResourceManagerException.
 	 */
-	public ResourceManager initialize()
+	public ResourceManager initialize(String baseDir, DiffableContext ctx)
 	throws ResourceManagerException;
 	
 	/**
@@ -50,15 +53,6 @@ public interface ResourceManager {
 	 * @param differ The differ instance to use.
 	 */
 	public void setDiffer(Differ differ);
-	
-	/**
-	 * Passes the ServletContext to the resource manager in case it is later
-	 * needed.  This will be called by the DiffableListener before the resource
-	 * manager is used and before the container calls the initialize method.
-	 * 
-	 * @param ctx The servlet context in which this resource manager is living.
-	 */
-	public void setServletContext(ServletContext ctx);
 	
 	/**
 	 * Determines whether or not the given resource is being managed.
