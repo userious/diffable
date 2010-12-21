@@ -28,6 +28,9 @@ public final class Constants {
 	/** The diffable context attribute name */
 	public static final String DIFFABLE_CONTEXT = "diffable.context";
 	
+	/** The diffable page coordinator name */
+	public static final String DIFFABLE_PAGE_COORDINATOR = "diffable.pageCoordinator";
+	
 	/** The attribute name of the diffable guive injector */
 	public static final String DIFFABLE_GUICE_INJECTOR = "diffable.DiffableGuiceInjector";
 

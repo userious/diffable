@@ -18,6 +18,7 @@ package com.google.diffable.handler;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
 
 import javax.servlet.http.HttpServletResponse;
@@ -26,8 +27,8 @@ import com.google.diffable.data.ResourceManager;
 import com.google.diffable.data.ResourceRequest;
 import com.google.diffable.diff.JSONHelper;
 import com.google.diffable.exceptions.ResourceManagerException;
-import com.google.diffable.scripts.DeltaBootstrapWrapper;
-import com.google.diffable.scripts.JsDictionaryBootstrapWrapper;
+import com.google.diffable.scripts.DeltaBootstrapTemplate;
+import com.google.diffable.scripts.DictionaryBootstrapTemplate;
 import com.google.inject.Inject;
 
 /**
@@ -41,10 +42,10 @@ public class DiffableResourceHandler {
 	private ResourceManager mgr;
 	
 	@Inject
-	private JsDictionaryBootstrapWrapper jsDictWrapper;
+	private DictionaryBootstrapTemplate jsDictWrapper;
 	
 	@Inject
-	private DeltaBootstrapWrapper bootstrapWrapper;
+	private DeltaBootstrapTemplate bootstrapWrapper;
 	
 	private Calendar jan2000 = Calendar.getInstance();
 	
@@ -79,18 +80,19 @@ public class DiffableResourceHandler {
 			resp.setHeader("Expires", 
 				new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US).format(
 					now.getTime()));
+			HashMap<String, String> values = new HashMap<String, String>();
+			values.put("{{DJS_RESOURCE_IDENTIFIER}}", request.getResourceHash());
 			if (request.isDiff()) {
-				String response = bootstrapWrapper.render(
-					request.getResourceHash(), request.getResponse());
+				values.put("{{DJS_DIFF_CONTENT}}", request.getResponse());
+				String response = bootstrapWrapper.render(values);
 				resp.setContentLength(response.length());
 				resp.getWriter().print(response);
 				processed = true;
 			} else {
-				String response = jsDictWrapper.render(
-					request.getResourceHash(),
-					JSONHelper.quote(request.getResponse()),
-					request.getNewVersionHash(),
-					request.getBasePath());
+				values.put("{{DJS_CODE}}", JSONHelper.quote(request.getResponse()));
+				values.put("{{DJS_BOOTSTRAP_VERSION}}", request.getNewVersionHash());
+				values.put("{{DJS_DIFF_URL}}", request.getBasePath());
+				String response = jsDictWrapper.render(values);
 				resp.setContentLength(response.length());
 				resp.getWriter().print(response);
 				processed = true;
