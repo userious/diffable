@@ -196,27 +196,4 @@ public class DiffableListener implements ServletContextListener {
 		}
 		return Guice.createInjector(module);
 	}
-	
-	/**
-	 * Recursively descends into a folder, adding resources to the manager as
-	 * they are found.
-	 * 
-	 * @param directory A directory to search for resources.
-	 */
-	private void addResourcesInPath(File directory) {
-		File[] resources = directory.listFiles();
-		for (File resource : resources) {
-			if (resource.isFile()) {
-				try {
-					mgr.putResource(resource);
-				} catch (Exception exc) {
-					provider.error(logger, "resources.cannotput",
-						           resource.getAbsolutePath());
-					printer.print(exc);
-				}
-			} else if (resource.isDirectory()) {
-				addResourcesInPath(resource);
-			}
-		}
-	}
 }

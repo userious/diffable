@@ -13,4 +13,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-window['diffable']['applyAndExecute']('{{DJS_RESOURCE_IDENTIFIER}}', {{DJS_DIFF_CONTENT}});
+window['diffable']['{{DJS_RESOURCE_IDENTIFIER}}']["diff_url"] = '{{DJS_DIFF_URL}}';
+window['diffable']['bootstrap']('{{DJS_RESOURCE_IDENTIFIER}}',{{DJS_CODE}},'{{DJS_BOOTSTRAP_VERSION}}');

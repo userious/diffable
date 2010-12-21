@@ -13,4 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-window['diffable']['applyAndExecute']('{{DJS_RESOURCE_IDENTIFIER}}', {{DJS_DIFF_CONTENT}});
+package com.google.diffable.scripts;
+
+import com.google.inject.Singleton;
+
+/**
+ * This class defines the JS dictionary bootstrap wrapper
+ * @author joshua Harrison
+ */
+@Singleton
+public class DictionaryBootstrapTemplate  extends DiffableTemplate {
+	public DictionaryBootstrapTemplate() {
+		this.setTemplate("/com/google/diffable/scripts/DictionaryBootstrap.js");
+	}
+}
