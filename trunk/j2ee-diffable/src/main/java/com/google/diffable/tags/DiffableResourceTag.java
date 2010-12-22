@@ -111,10 +111,18 @@ public class DiffableResourceTag extends TagSupport {
 						"window['diffable']['" + resourceHash + "']" +
 						"['cv'] = '" +
 						currentVersions.get(found) + "';");
-					pageContext.getOut().println("</script>");
 					pageContext.getOut().println(
-					    "<script type='text/javascript' src='" +
-						ctx.getServletPrefix() + "/" + resourceHash + "'></script>");
+							"window['diffable']['" + resourceHash + "']" +
+							"['diff_url'] = '" +
+							ctx.getServletPrefix() + "/';");
+					pageContext.getOut().println(
+						"window['diffable']['addResource']('" + 
+						ctx.getServletPrefix() + "/" + resourceHash + "');"
+					);
+					pageContext.getOut().println("</script>");
+					//pageContext.getOut().println(
+					//    "<script type='text/javascript' src='" +
+					//	ctx.getServletPrefix() + "/" + resourceHash + "'></script>");
 				} catch (Exception exc) {
 					JspException jspExc = new JspException(
 						exc.getMessage());

@@ -50,6 +50,21 @@ function asyncLoad_(url) {
 };
 
 /**
+ * Returns a boolean indicating whether HTML5 local storage is
+ * available.
+ * @return {boolean}
+ * @private
+ */
+function localStorageAvailable_() {
+	try {
+		return 'localStorage' in window && 
+		    window['localStorage'] !== null;
+	} catch (e) {
+		return false;
+	}
+};
+
+/**
  * This function writes a script to the page. Because it uses
  * document.write, it prevent the page from rendering until the
  * script has been written out, which prevents any race conditions
@@ -81,9 +96,37 @@ function DiffableBootstrap() {
 }
 
 /**
- * A Diffable resource is loaded onto the page by a call to the bootstrap
- * function.  A cached Diffable resource will simply be a call to this function
- * with the appropriate information filled in.
+ * This function is used to add the resource referenced by the url by
+ * retrieving it from local storage, when available, or adding a script
+ * tag to the page.
+ * @param {string} url The url of the resource. Also serves as the key
+ *     in local storage.
+ */
+DiffableBootstrap.prototype.addResource = function(url) {
+	var urlParts = url.split("/");
+	var resourceHash = urlParts[urlParts.length - 1];
+	if (localStorageAvailable_()) {
+		var storedVersion = localStorage.getItem(resourceHash + '.cv');
+		if (storedVersion) {
+			this.loadingList_[resourceHash] =
+				localStorage[resourceHash + '.code'];
+			if (storedVersion == window['diffable'][resourceHash]['cv']) {
+				this.applyAndExecute(resourceHash);
+			} else {
+				var diffUrl = this.getDiffName_(resourceHash,
+						                        storedVersion);
+				asyncLoad_(diffUrl);
+			}
+		} else {
+			asyncLoad_(url);
+		}
+	}
+};
+
+/**
+ * A Diffable resource is loaded into the page by a call to this function.
+ * The DictionaryBootstrap template wraps the necessary information with a
+ * call to this function and serves it up when the resource is requested.
  * @param {string} identifier An identifying string unique to this Diffable
  *     resource.  For instance, for the j2ee implementation, it will be the
  *     auto-generated hash of the resource.
@@ -98,12 +141,24 @@ DiffableBootstrap.prototype.bootstrap = function(identifier, code, version) {
 	if (window['diffable'][identifier]['cv'] == version) {
 		this.applyAndExecute(identifier);
 	} else {
-		var diffUrl = window['diffable'][identifier]['diff_url'] +
-		              identifier + "_" + version + "_" +
-		              window['diffable'][identifier]['cv'] + ".diff";
+		var diffUrl = this.getDiffName_(identifier, version);
 		var syncType = window['diffable'][identifier]['sync'];
 		syncType ? syncLoad_(diffUrl) : asyncLoad_(diffUrl);
 	}
+};
+
+/**
+ * Utility function for constructing a diff resource name.
+ * @param {string} identifier The resource identifier.
+ * @param {string} version The bootstrap version.
+ * @return {string} The name to use when requesting a diff for a given
+ *     resource.
+ * @private
+ */
+DiffableBootstrap.prototype.getDiffName_ = function(identifier, version) {
+	return window['diffable'][identifier]['diff_url'] +
+    	identifier + "_" + version + "_" +
+    	window['diffable'][identifier]['cv'] + ".diff";
 };
 
 /**
@@ -115,7 +170,8 @@ DiffableBootstrap.prototype.bootstrap = function(identifier, code, version) {
  * @private
  */
 DiffableBootstrap.prototype.globalEval_ = function(identifier) {
-	var source = this.loadingList_[identifier];
+	var source = null;
+	source = this.loadingList_[identifier];
 	if (window.execScript) {
 		window.execScript(source);
 	} else {
@@ -138,6 +194,13 @@ DiffableBootstrap.prototype.applyAndExecute = function(identifier, opt_diff) {
 		if (opt_diff) {
 			this.apply_(identifier, opt_diff);
 		}
+        if (localStorageAvailable_() &&
+            (opt_diff || !localStorage['identifier'])) {
+			localStorage[identifier + '.cv'] =
+				window['diffable'][identifier]['cv'];
+			localStorage[identifier + '.code'] =
+				this.loadingList_[identifier];
+        }
 		this.globalEval_(identifier);
 	} finally {
 		// No matter what happens with the patching or eval, this resource has
@@ -184,5 +247,6 @@ DiffableBootstrap.prototype.apply_ = function(identifier, diff) {
 };
 var djs = new DiffableBootstrap();
 window['diffable'] = {};
+window['diffable']['addResource'] = function(){ djs.addResource.apply(djs, arguments); }
 window['diffable']['bootstrap'] = function(){ djs.bootstrap.apply(djs, arguments); }
 window['diffable']['applyAndExecute'] = function(){ djs.applyAndExecute.apply(djs, arguments); }
