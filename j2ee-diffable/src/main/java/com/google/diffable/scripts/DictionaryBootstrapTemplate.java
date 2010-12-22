@@ -24,6 +24,6 @@ import com.google.inject.Singleton;
 @Singleton
 public class DictionaryBootstrapTemplate  extends DiffableTemplate {
 	public DictionaryBootstrapTemplate() {
-		this.setTemplate("/com/google/diffable/scripts/DictionaryBootstrap.js");
+		this.setTemplate("/com/google/diffable/scripts/DictionaryBootstrap.min.js");
 	}
 }

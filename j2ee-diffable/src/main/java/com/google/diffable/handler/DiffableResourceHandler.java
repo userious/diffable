@@ -91,7 +91,6 @@ public class DiffableResourceHandler {
 			} else {
 				values.put("{{DJS_CODE}}", JSONHelper.quote(request.getResponse()));
 				values.put("{{DJS_BOOTSTRAP_VERSION}}", request.getNewVersionHash());
-				values.put("{{DJS_DIFF_URL}}", request.getBasePath());
 				String response = jsDictWrapper.render(values);
 				resp.setContentLength(response.length());
 				resp.getWriter().print(response);
